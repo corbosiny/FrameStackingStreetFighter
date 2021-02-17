@@ -24,11 +24,13 @@ class Lobby():
 
     ### Static Variables 
 
-    NO_ACTION = 0                                                                        # The Lobby submits the NO_ACTION move until the round actually starts
-    ROUND_TIMER_NOT_STARTED = {'StreetFighterIISpecialChampionEdition-Genesis' : 39208}  # This is the value the timer variable in RAM is set to before the round starts
-                                                                                         # For each new game you want the lobby to support add in an element for that game's round timer
+    NO_ACTION = 0                                                                                 # NO_ACTION is submited when the simulation starts in order to get the initial observation and state info
 
-    FRAME_RATE = 1 / 115                                                                 # The time between frames if rendering is enabled
+    DISCRETIZERS = {'StreetFighterIISpecialChampionEdition-Genesis' : StreetFighter2Discretizer}  # Dictionary of the supported discretized games for this lobby
+
+    FRAME_RATE = 1 / 115                                                                          # The time between frames if rendering is enabled
+
+    STATE_FILE_HEADERS = {Lobby_Modes.SINGLE_PLAYER : "single_player", Lobby_Modes.TWO_PLAYER : "two_player"}
 
     ### End of static variables
 
@@ -69,7 +71,7 @@ class Lobby():
             A list of strings where each string is the name of a different save state
         """
         files = os.listdir('../{self.game}')
-        states = [file.split('.')[0] for file in files if file.split('.')[1] == 'state']
+        states = [file.split('.')[0] for file in files if file.split('.')[1] == 'state' and Lobby.STATE_FILE_HEADERS[self.mode] in file]
         return states
 
     def initEnvironment(self, state):
@@ -88,13 +90,11 @@ class Lobby():
         assert(os.path.exists(os.path.join('../{self.game}', state)))
 
         self.environment = retro.make(game= self.game, state= state, players= self.mode.value)
-        self.environment = StreetFighter2Discretizer(self.environment)
+        if self.game in Lobby.DISCRETIZERS: self.environment = Lobby.DISCRETIZERS[self.game(self.environment)]
         self.environment.reset()                
         # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data                                               
         self.lastObservation, _, _, self.lastInfo = self.environment.step(Lobby.NO_ACTION)                   
         self.done = False
-        while not self.isActionableState(self.lastInfo):
-            self.lastObservation, _, _, self.lastInfo = self.environment.step(Lobby.NO_ACTION)
 
     def addPlayer(self, newPlayer):
         """Adds a new player to the player list of active players in this lobby
@@ -131,26 +131,6 @@ class Lobby():
         """
         self.players = [None] * self.mode.value
 
-    def isActionableState(self, info):
-        """Determines if the Agent has control over the game in it's current state(the Agent is in hit stun, ending lag, etc.)
-
-        Parameters
-        ----------
-        info
-            The RAM info of the current game state the Agent is presented with as a dictionary of keyworded values from Data.json
-
-        Returns
-        -------
-        isActionable
-            A boolean variable describing whether the Agent has control over the given state of the game
-        """
-        assert(type(info) == dict)
-
-        if info['round_timer'] == Lobby.ROUND_TIMER_NOT_STARTED[self.game]:                                                       
-            return False
-        else:
-            return True
-
     def play(self, state, render= False):
         """The Agent will load the specified save state and play through it until finished, recording the fight for training
 
@@ -175,8 +155,8 @@ class Lobby():
         while not self.done:
             # Get moves for each player
             self.lastAction = []
-            for playerIndex in range(self.mode.value):
-                self.lastAction += self.players[playerIndex].getMove(self.lastObservation, self.lastInfo)
+            for player in self.players:
+                self.lastAction += player.getMove(self.lastObservation, self.lastInfo)
 
             # Excute each players moves and calculate rewards
             obs, self.lastReward, self.done, info = self.environment.step(self.lastAction)
@@ -186,20 +166,23 @@ class Lobby():
                 time.sleep(Lobby.FRAME_RATE)
 
             # Record Results
-            for playerIndex in range(self.mode.value):
-                self.players[playerIndex].recordStep((self.lastObservation, self.lastInfo, self.lastAction[playerIndex], self.lastReward[playerIndex], obs, info, self.done))
-                self.lastObservation, self.lastInfo = [obs, info]                   # Overwrite after recording step so Agent remembers the previous state that led to this one
+            for playerIndex, player in enumerate(self.players):
+                player.recordStep((self.lastObservation, self.lastInfo, self.lastAction[playerIndex], self.lastReward[playerIndex], obs, info, self.done))
+            self.lastObservation, self.lastInfo = [obs, info]                   # Overwrite after recording step so Agent remembers the previous state that led to this one
         
         # Clean up Environment after the match is over
         self.environment.close()
         if render: self.environment.viewer.close()
 
-    def executeTrainingRun(self, review= True, episodes= 1, render= False):
+    def executeTrainingRun(self, states= None, review= True, episodes= 1, render= False):
         """The lobby will load each of the saved states to generate data for the agent to train on
             Note: This will only work for single player mode
 
         Parameters
         ----------
+        state
+            If the user only wants specific states to be trained on, the name of that state can be set here
+            If not set the training run will go over all the states made for the current lobby mode
         review
             A boolean variable that tells the Agent whether or not it should train after running through all the save states, true means train
 
@@ -213,16 +196,23 @@ class Lobby():
         -------
         None
         """
+        assert(states is None or type(states) == list or type(states) == tuple)
+        if type(states) == list or type(states) == tuple: assert(len(states) != 0)
         assert(type(review) == bool)
         assert(type(episodes) == int)
+        assert(type(render) == bool)
+
+        if states is None:                                                      # If no specific states are entered gather all the states of the lobby mode to train on 
+            states = self.getSaveStateList()
 
         for episodeNumber in range(episodes):
             print('Starting episode', episodeNumber)
-            for state in self.getSaveStateList():
-                self.play(state= state)
+            for state in states:
+                self.play(state= state, render= render)
             
-            if self.players[0].__class__.__name__ != "Agent" and review == True: 
-                self.players[0].reviewFight()
+            for player in self.players:
+                if player.__class__.__name__ != "Agent" and review == True: 
+                    player.reviewFight()
 
 
 # Makes an example lobby and has a random agent play through an example training run

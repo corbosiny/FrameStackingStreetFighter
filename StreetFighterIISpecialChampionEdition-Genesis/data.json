@@ -52,6 +52,10 @@
             "address": 16744922,
             "type": "|u1"
         },
+        "player1_character": {
+            "address": 16744926,
+            "type": "|u1"
+        },
         "player1_score": {
             "address": 16744936,
             "type": ">d4"
