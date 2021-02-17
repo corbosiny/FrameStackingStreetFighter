@@ -1,0 +1,60 @@
+{
+    "info": {
+        "continue_timer": {
+            "address": 16744917,
+            "type": "|u1"
+        },
+        "round_timer": {
+            "address": 16750378,
+            "type": ">u2"
+        },
+        "player2_health": {
+            "address": 16745154,
+            "type": ">i2"
+        },
+        "player2_x_position": {
+            "address": 16745094,
+            "type": ">u2"
+        },
+        "player2_y_position": {
+            "address": 16745098,
+            "type": ">u2"
+        },
+        "player2_status": {
+            "address": 16744450,
+            "type": ">u2"
+        },
+        "player2_matches_won": {
+            "address": 16745559,
+            "type": ">u4"
+        },
+        "player2_character": {
+            "address": 16745563,
+            "type": "|u1"
+        },
+        "player1_health": {
+            "address": 16744514,
+            "type": ">i2"
+        },
+        "player1_x_position": {
+            "address": 16744454,
+            "type": ">u2"
+        },
+        "player1_y_position": {
+            "address": 16744458,
+            "type": ">u2"
+        },
+        "player1_status": {
+            "address": 16744450,
+            "type": ">u2"
+        },
+        "player1_matches_won": {
+            "address": 16744922,
+            "type": "|u1"
+        },
+        "player1_score": {
+            "address": 16744936,
+            "type": ">d4"
+        }
+    }
+}

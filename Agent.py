@@ -1,0 +1,268 @@
+import argparse
+import retro
+import threading
+import os
+import numpy
+import time
+import random
+import numbers
+from collections import deque
+
+from tensorflow.python import keras
+from keras.models import load_model
+
+class Agent():
+    """ Abstract class that user created Agents should inherit from.
+        Contains helper functions for launching training environments and generating training data sets.
+    """
+
+    # Global constants keeping track of some input lag for some directional movements
+    # Moves following these inputs will not be picked up unless input after the lag
+
+    # The indices representing what each index in a training point represent
+    TRAINING_POINT_SIZE = 7                                                                        # The number of elements in the vector that makes up a training point
+    OBSERVATION_INDEX = 0                                                                          # The current display image of the game state
+    STATE_INDEX = 1                                                                                # The state the agent was presented with    
+    ACTION_INDEX = 2                                                                               # The action the agent took
+    REWARD_INDEX = 3                                                                               # The reward the agent received for that action
+    NEXT_OBSERVATION_INDEX = 4                                                                     # The current display image of the new state the action led to
+    NEXT_STATE_INDEX = 5                                                                           # The next state that the action led to
+    DONE_INDEX = 6                                                                                 # A flag signifying if the game is over
+
+    MAX_DATA_LENGTH = 50000                                                                        # Max number of decision frames the Agent can remember from a fight, average is about 2000 per fight
+
+    DEFAULT_MODELS_DIR_PATH = '../local_models'               # Default path to the dir where the trained models are saved for later access
+    DEFAULT_MODELS_SUB_DIR = '{0}'                            # Models are further organized into subdirectories to avoid checkpoint overwrites by this naming scheme
+    DEFAULT_MODEL_FILE_EXTENSION = '.model'                   # Extension used to identify saved model weight files versus logs
+    DEFAULT_LOG_FILE_EXTENSION = '.log'                       # Extension used to identify training logs versus saved model weight files
+    
+
+    ### End of static variables 
+
+    ### Object methods
+
+    def __init__(self, actionSpace= None, load= False, name= None):
+        """Initializes the agent and the underlying neural network
+        Parameters
+        ----------
+
+        load
+            A boolean flag that specifies whether to initialize the model from scratch or load in a pretrained model
+        name
+            A string representing the name of the model that will be used when saving the model and the training logs
+            Defaults to the class name if none are provided
+
+        Returns
+        -------
+        None
+        """
+        assert(type(actionSpace) == "gym.spaces.discrete.Discrete")
+        assert(type(load) == bool)
+        assert(name is None or type(name) == str)
+ 
+        if name is None: self.name = self.__class__.__name__
+        else: self.name = name
+        self.actionSpace = actionSpace
+        self.prepareForNextFight()
+
+        if self.__class__.__name__ != "Agent":
+            self.model = self.initializeNetwork()    								            # Only invoked in child subclasses, Agent has no network
+            if load: self.loadModel()
+
+    def prepareForNextFight(self):
+        """Clears the memory of the fighter so it can prepare to record the next fight"""
+        self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                                      # Double ended queue that stores states during the game
+
+    def getRandomMove(self):
+        """Returns a random set of button inputs
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        move 
+        """                                                 
+        return self.actionSpace.sample()                               
+
+    def recordStep(self, step):
+        """Records the last observation, action, reward and the resultant observation about the environment for later training
+        Parameters
+        ----------
+        step
+            A tuple containing the following elements:
+            observation
+                The current display image in the form of a 2D array containing RGB values of each pixel
+            state
+                The state the Agent was presented with before it took an action.
+                A dictionary containing tagged RAM data
+            action
+                Integer representing the last move from the move list the Agent chose to pick
+            reward
+                The reward the agent received for taking that action
+            nextObservation
+                The resultant display image in the form of a 2D array containing RGB values of each pixel
+            nextState
+                The state that the chosen action led to
+            done
+                Whether or not the new state marks the completion of the emulation
+
+        Returns
+        -------
+        None
+        """
+        assert(type(step) == tuple or type(step) == list)
+        assert(len(step) == Agent.TRAINING_POINT_SIZE)
+        assert(type(step[Agent.OBSERVATION_INDEX]) == numpy.ndarray)
+        assert(type(step[Agent.STATE_INDEX]) == dict)
+        assert(isinstance(step[Agent.ACTION_INDEX], numbers.Number))
+        assert(isinstance(step[Agent.REWARD_INDEX], numbers.Number))
+        assert(type(step[Agent.NEXT_OBSERVATION_INDEX]) == numpy.ndarray)
+        assert(type(step[Agent.NEXT_STATE_INDEX]) == dict)
+        assert(type(step[Agent.DONE_INDEX]) == bool)
+
+        self.memory.append(step) # Steps are stored as tuples to avoid unintended changes
+
+    def reviewFight(self):
+        """The Agent goes over the data collected from it's last fight, prepares it, and then runs through one epoch of training on the data"""
+        data = self.prepareMemoryForTraining(self.memory)
+        self.model = self.trainNetwork(data, self.model)   		                           # Only invoked in child subclasses, Agent does not learn
+        self.saveModel()
+        self.prepareForNextFight()
+
+    def saveModel(self, lossUpdate= None):
+        """Saves the currently trained model in the default naming convention ../local_models/{Class_Name}/{Class_Name}.model
+        Parameters
+        ----------
+        lossUpdate
+            An integer value representing the mean loss after one training epoch,
+            will be logged in this model's training log if supplied
+
+        Returns
+        -------
+        None
+        """
+        assert(lossUpdate is None or isinstance(lossUpdate, numbers.Number))
+
+        totalDirPath = os.path.join(Agent.DEFAULT_MODELS_DIR_PATH, Agent.DEFAULT_MODELS_SUB_DIR.format(self.name))
+        self.model.save_weights(os.path.join(totalDirPath, self.getModelName()))
+        print('Model successfully saved')
+        if lossUpdate is not None:
+            try:
+                with open(os.path.join(totalDirPath, self.getLogName()), 'a+') as file:
+                    file.write(str(lossUpdate))
+                    file.write('\n')
+                    print('Loss History Successfully Updated')
+            except Exception as e:
+                print('Trouble updating loss history:', e)
+        else:
+            print('Loss History was not updated as there were no losses to report')
+
+    def loadModel(self):
+        """Loads in pretrained model object ../local_models/{Class_Name}/{Class_Name}.model
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        totalDirPath = os.path.join(Agent.DEFAULT_MODELS_DIR_PATH, Agent.DEFAULT_MODELS_SUB_DIR.format(self.name))
+        try:
+            self.model.load_weights(os.path.join(totalDirPath, self.getModelName()))
+            print('Model successfully loaded')
+        except Exception as e:
+            print('Trouble Loading Model:', e)
+
+    def getModelName(self):
+        """Returns the formatted model name for the current model"""
+        return  self.name + Agent.DEFAULT_MODEL_FILE_EXTENSION
+
+    def getLogName(self):
+        """Returns the formatted log name for the current model"""
+        return self.name + Agent.DEFAULT_LOG_FILE_EXTENSION
+
+    ### End of object methods
+
+    ### Abstract methods for the child Agent to implement
+    def getMove(self, obs, info):
+        """Returns a set of button inputs generated by the Agent's network after looking at the current observation
+        Parameters
+        ----------
+        obs
+            The observation of the current environment, 2D numpy array of pixel values
+        info
+            An array of information about the current environment, like player health, enemy health, matches won, and matches lost, etc.
+            A full list of info can be found in data.json
+
+        Returns
+        -------
+        move
+            Integer representing the move that was selected from the move list
+        """
+        if self.__class__.__name__ == "Agent":
+            move = self.getRandomMove()
+            return move
+        else:
+            raise NotImplementedError("Implement getMove in the inherited agent")
+
+    def initializeNetwork(self):
+        """To be implemented in child class, should initialize or load in the Agent's neural network
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        model
+            A newly initialized model that the Agent will use when generating moves
+        """
+        raise NotImplementedError("Implement initializeNetwork in the inherited agent")
+    
+    def prepareMemoryForTraining(self, memory):
+        """To be implemented in child class, should prepare the recorded fight sequences into training data
+        
+        Parameters
+        ----------
+        memory
+            A 2D array where each index is a recording of a state, action, new state, and reward sequence
+            See readme for more details
+
+        Returns
+        -------
+        data
+            The prepared training data
+        """
+        raise NotImplementedError("Implement prepareMemoryForTraining in the inherited agent")
+
+    def trainNetwork(self, data, model):
+        """To be implemented in child class, Runs through a training epoch reviewing the training data and returns the trained model
+        Parameters
+        ----------
+        data
+            The training data for the model
+        
+        model
+            The model for the function to train
+
+        Returns
+        -------
+        model
+            The newly trained model
+        """
+        raise NotImplementedError("Implement trainNetwork in the inherited agent")
+
+    ### End of Abstract methods
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Processes agent parameters.')
+    parser.add_argument('-r', '--render', action= 'store_true', help= 'Boolean flag for if the user wants the game environment to render during play')
+    args = parser.parse_args()
+    from Lobby import Lobby
+    testLobby = Lobby(render= args.render)
+    agent = Agent()
+    testLobby.addPlayer(agent)
+    testLobby.executeTrainingRun()
