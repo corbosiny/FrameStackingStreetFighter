@@ -1,9 +1,10 @@
 from tensorflow.python import keras
 
 class LossHistory(keras.callbacks.Callback):
-    """A class for keras to use to store training losses for the model to use:
-       1. initialize a LossHistory object inside your agent
-       2. and put callbacks= [self.lossHistory] in the model.fit() call
+    """
+    A class for keras to use to store training losses for the model to use:
+    1. initialize a LossHistory object inside your agent
+    2. and put callbacks= [self.lossHistory] in the model.fit() call
     """
     def __init__(self):
         self.losses = []

@@ -13,8 +13,9 @@ from tensorflow.python import keras
 from keras.models import load_model
 
 class Agent():
-    """ Abstract class that user created Agents should inherit from.
-        Contains helper functions for launching training environments and generating training data sets.
+    """ 
+    Abstract class that user created Agents should inherit from.
+    Contains helper functions for launching training environments and generating training data sets.
     """
 
     # Global constants keeping track of some input lag for some directional movements
@@ -43,7 +44,9 @@ class Agent():
     ### Object methods
 
     def __init__(self, load= False, name= None):
-        """Initializes the agent and the underlying neural network
+        """
+        Initializes the agent and the underlying neural network
+        
         Parameters
         ----------
         load
@@ -61,28 +64,42 @@ class Agent():
  
         if name is None: self.name = self.__class__.__name__
         else: self.name = name
+        self.numMatchesPlayed = 0
+        self.numMatchesWon = 0
 
         if self.__class__.__name__ != "Agent":
             self.model = self.initializeNetwork()    								            # Only invoked in child subclasses, Agent has no network
             if load: self.loadModel()
 
-    def prepareForNextFight(self, actionSpace):
-        """Clears the memory of the fighter so it can prepare to record the next fight and records what it's action space is
+    def prepareForNextFight(self, actionSpace, playerNumber):
+        """
+        Clears the memory of the fighter so it can prepare to record the next fight and records what it's action space is
+        
         Parameters
         ----------
         actionSpace
             Action space
+
+        playerNumber
+            Integer representing whether the Agent is player 1(0) or player 2(1)
 
         Returns
         -------
         None
         """
         assert(isinstance(actionSpace, gym.spaces.discrete.Discrete))
+        assert(isinstance(playerNumber, int))
+        assert(playerNumber in [0, 1])
+ 
         self.actionSpace = actionSpace
+        self.playerNumber = playerNumber
         self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                                      # Double ended queue that stores states during the game
+        self.numMatchesPlayed += 1
 
     def getRandomMove(self):
-        """Returns a random set of button inputs
+        """
+        Returns a random set of button inputs
+        
         Parameters
         ----------
         None
@@ -94,7 +111,9 @@ class Agent():
         return self.actionSpace.sample()                               
 
     def recordStep(self, step):
-        """Records the last observation, action, reward and the resultant observation about the environment for later training
+        """
+        Records the last observation, action, reward and the resultant observation about the environment for later training
+        
         Parameters
         ----------
         step
@@ -119,7 +138,7 @@ class Agent():
         -------
         None
         """
-        assert(isinstance(step, list) or isinstance(step, tuple))
+        assert(isinstance(step, (list, tuple)))
         assert(len(step) == Agent.TRAINING_POINT_SIZE)
         assert(isinstance(step[Agent.OBSERVATION_INDEX], numpy.ndarray))
         assert(isinstance(step[Agent.STATE_INDEX], dict))
@@ -129,16 +148,25 @@ class Agent():
         assert(isinstance(step[Agent.NEXT_STATE_INDEX], dict))
         assert(isinstance(step[Agent.DONE_INDEX], bool))
 
+        # If the match is over and the agent's number of rounds won is 2, than they won the match
+        if step[Agent.DONE_INDEX]:
+            key = "player{0}_matches_won".format(self.playerNumber)
+            if step[Agent.NEXT_STATE_INDEX][key] == 2: self.numMatchesWon += 1 
+            
         self.memory.append(step) # Steps are stored as tuples to avoid unintended changes
 
     def reviewFight(self):
-        """The Agent goes over the data collected from it's last fight, prepares it, and then runs through one epoch of training on the data"""
+        """
+        The Agent goes over the data collected from it's last fight, prepares it, and then runs through one epoch of training on the data
+        """
         data = self.prepareMemoryForTraining(self.memory)
         self.model = self.trainNetwork(data, self.model)   		                           # Only invoked in child subclasses, Agent does not learn
         self.saveModel()
 
     def saveModel(self, lossUpdate= None):
-        """Saves the currently trained model in the default naming convention ../local_models/{Class_Name}/{Class_Name}.model
+        """
+        Saves the currently trained model in the default naming convention ../local_models/{Class_Name}/{Class_Name}.model
+        
         Parameters
         ----------
         lossUpdate
@@ -166,7 +194,9 @@ class Agent():
             print('Loss History was not updated as there were no losses to report')
 
     def loadModel(self):
-        """Loads in pretrained model object ../local_models/{Class_Name}/{Class_Name}.model
+        """
+        Loads in pretrained model object ../local_models/{Class_Name}/{Class_Name}.model
+        
         Parameters
         ----------
         None
@@ -193,8 +223,11 @@ class Agent():
     ### End of object methods
 
     ### Abstract methods for the child Agent to implement
-    def getMove(self, obs, info, playerNumber):
-        """Returns a set of button inputs generated by the Agent's network after looking at the current observation
+
+    def getMove(self, obs, info):
+        """
+        Returns a set of button inputs generated by the Agent's network after looking at the current observation
+        
         Parameters
         ----------
         obs
@@ -203,14 +236,14 @@ class Agent():
             An array of information about the current environment, like player health, enemy health, matches won, and matches lost, etc.
             A full list of info can be found in data.json
 
-        playerNumber
-            Integer representing whether the Agent is player 1(0) or player 2(1)
-
         Returns
         -------
         move
             Integer representing the move that was selected from the move list
         """
+        assert(isinstance(obs, numpy.ndarray))
+        assert(isinstance(info, dict))
+
         if self.__class__.__name__ == "Agent":
             move = self.getRandomMove()
             return move
@@ -218,7 +251,8 @@ class Agent():
             raise NotImplementedError("Implement getMove in the inherited agent")
 
     def initializeNetwork(self):
-        """To be implemented in child class, should initialize or load in the Agent's neural network
+        """
+        To be implemented in child class, should initialize or load in the Agent's neural network
         
         Parameters
         ----------
@@ -232,7 +266,8 @@ class Agent():
         raise NotImplementedError("Implement initializeNetwork in the inherited agent")
     
     def prepareMemoryForTraining(self, memory):
-        """To be implemented in child class, should prepare the recorded fight sequences into training data
+        """
+        To be implemented in child class, should prepare the recorded fight sequences into training data
         
         Parameters
         ----------
@@ -248,7 +283,9 @@ class Agent():
         raise NotImplementedError("Implement prepareMemoryForTraining in the inherited agent")
 
     def trainNetwork(self, data, model):
-        """To be implemented in child class, Runs through a training epoch reviewing the training data and returns the trained model
+        """
+        To be implemented in child class, Runs through a training epoch reviewing the training data and returns the trained model
+        
         Parameters
         ----------
         data
@@ -265,17 +302,20 @@ class Agent():
         raise NotImplementedError("Implement trainNetwork in the inherited agent")
 
     def __repr__(self):
+        """What to return if type is called on this class or any child class"""
         return "Agent"
 
     ### End of Abstract methods
 
-
+"""
+Make a test Agent and run it through one training run on single player mode of streetfighter
+"""
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Processes agent parameters.')
     parser.add_argument('-r', '--render', action= 'store_true', help= 'Boolean flag for if the user wants the game environment to render during play')
     args = parser.parse_args()
-    from Lobby import Lobby
-    testLobby = Lobby()
+    import Lobby
+    testLobby = Lobby.Lobby(mode= Lobby.Lobby_Modes.SINGLE_PLAYER)
     agent = Agent()
     testLobby.addPlayer(agent)
     testLobby.executeTrainingRun(render= True)

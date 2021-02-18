@@ -6,21 +6,41 @@ All credit too open-ai's examples: https://github.com/openai/retro/blob/master/r
 import gym
 import numpy as np
 import retro
+import time
 
-class Discretizer(gym.ActionWrapper):
+class Discretizer(gym.Wrapper):
     """
-    Wrap a gym environment and make it use discrete actions.
-    Args:
-        combos: ordered list of lists of valid button combinations
+    Wrap a gym environment and make it use discrete actions and allow for two player matches if the proper state is used.
     """
 
-    def __init__(self, env, players, combos):
+    ### Static Variables
+
+    FRAME_RATE = 1 / 150                                                                          # The time between frames if rendering is enabled
+
+    ### End of Static Variables 
+
+    def __init__(self, env, combos):
+        """
+        Initializes the environment wrapper that discretizes the action space and allows for multiple players
+
+        Parameters
+        ----------
+        env
+            The gym environment to wrap around
+
+        combos
+            List of filtered discrete actions that make up the action space
+            See the StreetFighterWrapper below for an example
+
+        Returns
+        -------
+        None
+        """
         assert(isinstance(env, retro.retro_env.RetroEnv))
         assert(isinstance(env.action_space, gym.spaces.MultiBinary))
-        assert(isinstance(players, int))
-        assert(isinstance(combos, list) or isinstance(combos, tuple))
+        assert(isinstance(combos, (list, tuple)))
         
-        self.players = players
+        self.players = env.players
         super().__init__(env)
         buttons = env.unwrapped.buttons
         self._decode_discrete_action = []
@@ -33,7 +53,78 @@ class Discretizer(gym.ActionWrapper):
 
         self.action_space = gym.spaces.Discrete(len(self._decode_discrete_action))
 
-    def action(self, actionList):
+    def render(self, mode='human', **kwargs):
+        """
+        Renders the current contents of the environment and limits it to human watchable speeds
+
+        Parameters
+        ----------
+        mode 
+            string representing the mode to render with
+            The render modes are:
+                - human: render to the current display or terminal and
+                return nothing. Usually for human consumption.
+
+                - rgb_array: Return an numpy.ndarray with shape (x, y, 3),
+                representing RGB values for an x-by-y pixel image, suitable
+                for turning into a video.
+                
+                - ansi: Return a string (str) or StringIO.StringIO containing a
+                terminal-style text representation. The text can include newlines
+                and ANSI escape sequences (e.g. for colors).
+
+        Returns
+        -------
+        observation
+            A 2D numpy array representing the current image buffer data of the environment
+        reward
+            An array of floats representing the reward for each player
+        done
+            A boolean representing if the match is over
+        info
+            A dictionary containing the current metadata extracted from RAM
+        """
+        returnValues =  self.env.render(mode, **kwargs)
+        time.sleep(Discretizer.FRAME_RATE)
+        return returnValues
+
+    def step(self, actionList):
+        """
+        Advances a step in the environment given the selected actions
+
+        Parameters
+        ----------
+        actionList
+            An array of integers where each element is the move selection from one of the players
+
+        Returns
+        -------
+        observation
+            A 2D numpy array representing the current image buffer data of the environment
+        reward
+            An array of floats representing the reward for each player
+        done
+            A boolean representing if the match is over
+        info
+            A dictionary containing the current metadata extracted from RAM
+        """
+        observation, reward, done, info = self.env.step(self.convertActionListToInputs(actionList))
+        return observation, self.calculatePlayerRewards(reward), done, info
+
+    def convertActionListToInputs(self, actionList):
+        """
+        Converts all of the chosen actions into one input vector to submit to the environment
+
+        Parameters
+        ----------
+        actionList
+            An array of integers where each element is the move selection from one of the players
+
+        Returns
+        -------
+        inputs
+            An array of binary values where each element represents whether a corresponding button on the virtual controllers is being pressed
+        """
         assert(isinstance(actionList, (list, tuple, np.ndarray))) 
         assert(len(actionList) == self.players)
         
@@ -43,25 +134,53 @@ class Discretizer(gym.ActionWrapper):
         
         return inputs
 
-    def reward(self, reward):
-        if isinstance(reward, int): reward = [reward]
+    def calculatePlayerRewards(self, reward):
+        """
+        Returns the rewards earned by each player
+
+        Parameters
+        ----------
+        reward
+            Float representing the reward earned by player 1
+            Players 2 reward is always the inverse of this
+
+        Returns
+        -------
+        reward
+            An array of of floats containing the rewards for each player
+        """
+        if isinstance(reward, (int, float)): reward = [reward]
         if self.players == 2: reward[1] = -reward[0]
         return reward
 
     def get_action_meaning(self, actionList):
+        """
+        Returns the human description of what button presses represent the chosen actions from each player
+
+        Parameters
+        ----------
+        actionList
+            An array of integers where each element is the move selection from one of the players
+
+        Returns
+        -------
+        meanings
+            A 2D array where each element is a list of all the button presses that represent the corresponding players action    
+        """
         assert(isinstance(actionList, (list, tuple, np.ndarray)))
         assert(len(actionList) == self.players)
 
         meanings = [self._combos[action] for action in actionList]
         return meanings
 
+
 class StreetFighter2Discretizer(Discretizer):
     """
     Use Street Fighter 2
     based on https://github.com/openai/retro-baselines/blob/master/agents/sonic_util.py
     """
-    def __init__(self, env, players):
-        super().__init__(env=env, players=players, combos=[[], 
+    def __init__(self, env):
+        super().__init__(env=env, combos=[[], 
                                          ['UP'], 
                                          ['DOWN'], 
                                          ['LEFT'], 
@@ -113,13 +232,14 @@ class StreetFighter2Discretizer(Discretizer):
                                          ['Z', 'DOWN', 'LEFT'],
                                          ['Z', 'DOWN', 'RIGHT']])
 
+
 """
-    Initializes an example discrete environment and randomly selects moves for the agent to make.
-    The meaning of each selected move in terms of what buttons are being pressed is also displayed.
+Initializes an example discrete environment and randomly selects moves for the agent to make.
+The meaning of each selected move in terms of what buttons are being pressed is also displayed.
 """
 def main():
     env = retro.make(game='StreetFighterIISpecialChampionEdition-Genesis')
-    env = StreetFighter2Discretizer(env, env.players)
+    env = StreetFighter2Discretizer(env)
     env.reset()
     while True:
         env.render()

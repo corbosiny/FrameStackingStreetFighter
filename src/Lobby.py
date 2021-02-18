@@ -17,9 +17,10 @@ class Lobby_Modes(Enum):
     TWO_PLAYER = 2
 
 class Lobby():
-    """A class that handles all of the necessary book keeping for running the gym environment.
-       A number of players are added and a game state is selected and the lobby will handle
-       piping in the player moves and keeping track of some relevant game information.
+    """
+    A class that handles all of the necessary book keeping for running the gym environment.
+    A number of players are added and a game state is selected and the lobby will handle
+    piping in the player moves and keeping track of some relevant game information.
     """
 
     ### Static Variables 
@@ -28,14 +29,13 @@ class Lobby():
 
     DISCRETIZERS = {'StreetFighterIISpecialChampionEdition-Genesis' : StreetFighter2Discretizer}  # Dictionary of the supported discretized games for this lobby
 
-    FRAME_RATE = 1 / 115                                                                          # The time between frames if rendering is enabled
-
     STATE_FILE_HEADERS = {Lobby_Modes.SINGLE_PLAYER : "single_player", Lobby_Modes.TWO_PLAYER : "two_player"}
 
-    ### End of static variables
+    ### End of Static Variables
 
     def __init__(self, game= 'StreetFighterIISpecialChampionEdition-Genesis', mode= Lobby_Modes.SINGLE_PLAYER):
-        """Initializes the agent and the underlying neural network
+        """
+        Initializes the agent and the underlying neural network
 
         Parameters
         ----------
@@ -57,9 +57,10 @@ class Lobby():
         self.clearLobby()
 
     def getSaveStateList(self):
-        """Returns a list of all the save state names that can be loaded.
-           Assumes there is a directory with the same name as the game
-           that contains the save states
+        """
+        Returns a list of all the save state names that can be loaded.
+        Assumes there is a directory with the same name as the game
+        that contains the save states
 
         Parameters
         ----------
@@ -75,7 +76,8 @@ class Lobby():
         return states
 
     def initEnvironment(self, state):
-        """Initializes a game environment that the Agent can play a save state in
+        """
+        Initializes a game environment that the Agent can play a save state in
 
         Parameters
         ----------
@@ -93,12 +95,13 @@ class Lobby():
         if self.game in Lobby.DISCRETIZERS: self.environment = Lobby.DISCRETIZERS[self.game](self.environment)
         self.environment.reset()                
         # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data                                               
-        self.lastObservation, _, _, self.lastInfo = self.environment.step(Lobby.NO_ACTION)                   
+        self.lastObservation, _, _, self.lastInfo = self.environment.step([Lobby.NO_ACTION] * self.mode.value)                   
         self.done = False
 
     def addPlayer(self, newPlayer):
-        """Adds a new player to the player list of active players in this lobby
-           will throw a Lobby_Full_Exception if the lobby is full
+        """
+        Adds a new player to the player list of active players in this lobby
+        will throw a Lobby_Full_Exception if the lobby is full
 
         Parameters
         ----------
@@ -119,7 +122,8 @@ class Lobby():
         raise Lobby_Full_Exception("Lobby has already reached the maximum number of players")
 
     def clearLobby(self):
-        """Clears the players currently inside the lobby's play queue
+        """
+        Clears the players currently inside the lobby's play queue
 
         Parameters
         ----------
@@ -132,7 +136,8 @@ class Lobby():
         self.players = [None] * self.mode.value
 
     def play(self, state, render= False):
-        """The Agent will load the specified save state and play through it until finished, recording the fight for training
+        """
+        The Agent will load the specified save state and play through it until finished, recording the fight for training
 
         Parameters
         ----------
@@ -151,40 +156,31 @@ class Lobby():
         assert(isinstance(render, bool))
 
         self.initEnvironment(state)
-        for playerIndex in range(self.mode.value): self.players[playerIndex].prepareForNextFight(self.environment.action_space)
+        [self.players[playerNum].prepareForNextFight(self.environment.action_space, playerNum) for playerNum in range(self.mode.value)]
 
         while not self.done:
             # Get moves for each player
-            self.lastAction = []
-            for playerIndex in range(self.mode.value):
-                self.lastAction.append(self.players[playerIndex].getMove(self.lastObservation, self.lastInfo, playerIndex))
+            self.lastAction = [self.players[playerNum].getMove(self.lastObservation, self.lastInfo) for playerNum in range(self.mode.value)]
 
             # Excute each players moves and calculate rewards
-            if self.mode == Lobby_Modes.TWO_PLAYER:
-                obs, self.lastReward, self.done, info = self.environment.step(self.lastAction)
-                self.lastReward[1] = -self.lastReward[0]    
-            else:
-                obs, self.lastReward, self.done, info = self.environment.step(self.lastAction[0])
-                
-            if render: 
-                self.environment.render()
-                time.sleep(Lobby.FRAME_RATE)
+            obs, self.lastReward, self.done, info = self.environment.step(self.lastAction)
+            if render: self.environment.render()
 
             # Record Results
-            for playerIndex in range(self.mode.value):
-                player = self.players[playerIndex]
-                if self.mode == Lobby_Modes.TWO_PLAYER: reward = self.lastReward[playerIndex]
-                else: reward = self.lastReward
-                player.recordStep((self.lastObservation, self.lastInfo, self.lastAction[playerIndex], reward, obs, info, self.done))
+            [self.players[playerNum].recordStep((self.lastObservation, self.lastInfo, self.lastAction[playerNum], self.lastReward[playerNum], obs, info, self.done)) for playerNum in range(self.mode.value)]
             self.lastObservation, self.lastInfo = [obs, info]                   # Overwrite after recording step so Agent remembers the previous state that led to this one
         
         # Clean up Environment after the match is over
         self.environment.close()
         if render: self.environment.viewer.close()
 
+        # Update player info with who won
+
+
     def executeTrainingRun(self, states= None, review= True, episodes= 1, render= False):
-        """The lobby will load each of the saved states to generate data for the agent to train on
-            Note: This will only work for single player mode
+        """
+        The lobby will load each of the saved states to generate data for the agent to train on
+        Note: This will only work for single player mode
 
         Parameters
         ----------
@@ -204,8 +200,8 @@ class Lobby():
         -------
         None
         """
-        assert(states is None or isinstance(states, list) or isinstance(states, tuple))
-        if isinstance(states, list) or isinstance(states, tuple): assert(len(states) != 0)
+        assert(states is None or isinstance(states, (list, tuple)))
+        if isinstance(states, (list, tuple)): assert(len(states) != 0)
         assert(isinstance(review, bool))
         assert(isinstance(episodes, int))
         assert(isinstance(render, bool))
@@ -216,14 +212,19 @@ class Lobby():
         for episodeNumber in range(episodes):
             print('Starting episode', episodeNumber)
             for state in states:
+                print('Loading {state}..')
                 self.play(state= state, render= render)
             
-            for player in self.players:
-                if player.__class__.__name__ != "Agent" and review == True: 
-                    player.reviewFight()
+                for player in self.players:
+                    if player.__class__.__name__ != "Agent" and review == True: 
+                        player.reviewFight()
+
+        print("Training Run Completed with {0} episodes".format(episodes))
 
 
-# Makes an example lobby and has a random agent play through an example training run
+"""
+Make a test Agent and run it through one training run on single player mode of streetfighter
+"""
 if __name__ == "__main__":
     testLobby = Lobby()
     agent = Agent()

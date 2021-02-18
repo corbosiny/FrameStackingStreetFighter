@@ -21,13 +21,13 @@ function calculate_reward()
   
   if data.player1_matches_won > previous_player1_matches_won then
     local delta = 100
-    previous_player1_matches_won = data.matches_won
+    previous_player1_matches_won = data.player1_matches_won
     reward = reward + delta
   end
   
   if data.player2_matches_won > previous_player2_matches_won then
     local delta = -100
-    previous_player2_matches_won = data.enemy_matches_won
+    previous_player2_matches_won = data.player2_matches_won
     reward = reward + delta
   end
   
