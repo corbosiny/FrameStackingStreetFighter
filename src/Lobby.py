@@ -49,8 +49,8 @@ class Lobby():
         -------
         None
         """
-        assert(type(game) == str)
-        assert(type(mode) == Lobby_Modes)
+        assert(isinstance(game, str))
+        assert(isinstance(mode, Lobby_Modes))
 
         self.game = game
         self.mode = mode
@@ -70,7 +70,7 @@ class Lobby():
         states
             A list of strings where each string is the name of a different save state
         """
-        files = os.listdir('../{self.game}')
+        files = os.listdir('../{0}'.format(self.game))
         states = [file.split('.')[0] for file in files if file.split('.')[1] == 'state' and Lobby.STATE_FILE_HEADERS[self.mode] in file]
         return states
 
@@ -86,11 +86,11 @@ class Lobby():
         -------
         None
         """
-        assert(type(state) == str)
-        assert(os.path.exists(os.path.join('../{self.game}', state)))
+        assert(isinstance(state, str))
+        assert(os.path.exists(os.path.join('../{0}'.format(self.game), state + '.state')))
 
         self.environment = retro.make(game= self.game, state= state, players= self.mode.value)
-        if self.game in Lobby.DISCRETIZERS: self.environment = Lobby.DISCRETIZERS[self.game(self.environment)]
+        if self.game in Lobby.DISCRETIZERS: self.environment = Lobby.DISCRETIZERS[self.game](self.environment)
         self.environment.reset()                
         # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data                                               
         self.lastObservation, _, _, self.lastInfo = self.environment.step(Lobby.NO_ACTION)                   
@@ -109,7 +109,7 @@ class Lobby():
         -------
         None
         """
-        assert(type(newPlayer) == Agent)
+        assert(newPlayer.__repr__() == "Agent")
 
         for playerNum, player in enumerate(self.players):
             if player is None:
@@ -146,28 +146,36 @@ class Lobby():
         -------
         None
         """
-        assert(type(state) == str)
-        assert(os.path.exists(os.path.join('../{self.game}', state)))
-        assert(type(render) == bool)
+        assert(isinstance(state, str))
+        assert(os.path.exists(os.path.join('../{0}'.format(self.game), state + '.state')))
+        assert(isinstance(render, bool))
 
         self.initEnvironment(state)
+        for playerIndex in range(self.mode.value): self.players[playerIndex].prepareForNextFight(self.environment.action_space)
 
         while not self.done:
             # Get moves for each player
             self.lastAction = []
-            for player in self.players:
-                self.lastAction += player.getMove(self.lastObservation, self.lastInfo)
+            for playerIndex in range(self.mode.value):
+                self.lastAction.append(self.players[playerIndex].getMove(self.lastObservation, self.lastInfo, playerIndex))
 
             # Excute each players moves and calculate rewards
-            obs, self.lastReward, self.done, info = self.environment.step(self.lastAction)
-            if self.mode == Lobby_Modes.TWO_PLAYER: self.lastReward[1] = -self.lastReward[0]    
+            if self.mode == Lobby_Modes.TWO_PLAYER:
+                obs, self.lastReward, self.done, info = self.environment.step(self.lastAction)
+                self.lastReward[1] = -self.lastReward[0]    
+            else:
+                obs, self.lastReward, self.done, info = self.environment.step(self.lastAction[0])
+                
             if render: 
                 self.environment.render()
                 time.sleep(Lobby.FRAME_RATE)
 
             # Record Results
-            for playerIndex, player in enumerate(self.players):
-                player.recordStep((self.lastObservation, self.lastInfo, self.lastAction[playerIndex], self.lastReward[playerIndex], obs, info, self.done))
+            for playerIndex in range(self.mode.value):
+                player = self.players[playerIndex]
+                if self.mode == Lobby_Modes.TWO_PLAYER: reward = self.lastReward[playerIndex]
+                else: reward = self.lastReward
+                player.recordStep((self.lastObservation, self.lastInfo, self.lastAction[playerIndex], reward, obs, info, self.done))
             self.lastObservation, self.lastInfo = [obs, info]                   # Overwrite after recording step so Agent remembers the previous state that led to this one
         
         # Clean up Environment after the match is over
@@ -196,11 +204,11 @@ class Lobby():
         -------
         None
         """
-        assert(states is None or type(states) == list or type(states) == tuple)
-        if type(states) == list or type(states) == tuple: assert(len(states) != 0)
-        assert(type(review) == bool)
-        assert(type(episodes) == int)
-        assert(type(render) == bool)
+        assert(states is None or isinstance(states, list) or isinstance(states, tuple))
+        if isinstance(states, list) or isinstance(states, tuple): assert(len(states) != 0)
+        assert(isinstance(review, bool))
+        assert(isinstance(episodes, int))
+        assert(isinstance(render, bool))
 
         if states is None:                                                      # If no specific states are entered gather all the states of the lobby mode to train on 
             states = self.getSaveStateList()

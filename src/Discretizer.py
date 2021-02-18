@@ -14,11 +14,13 @@ class Discretizer(gym.ActionWrapper):
         combos: ordered list of lists of valid button combinations
     """
 
-    def __init__(self, env, combos):
-        assert(type(env) == 'retro.retro_env.RetroEnv')
+    def __init__(self, env, players, combos):
+        assert(isinstance(env, retro.retro_env.RetroEnv))
         assert(isinstance(env.action_space, gym.spaces.MultiBinary))
-        assert(type(combos) == list)
+        assert(isinstance(players, int))
+        assert(isinstance(combos, list) or isinstance(combos, tuple))
         
+        self.players = players
         super().__init__(env)
         buttons = env.unwrapped.buttons
         self._decode_discrete_action = []
@@ -31,21 +33,35 @@ class Discretizer(gym.ActionWrapper):
 
         self.action_space = gym.spaces.Discrete(len(self._decode_discrete_action))
 
-    def action(self, act):
-        assert(type(act) == int)
-        return self._decode_discrete_action[act].copy()
+    def action(self, actionList):
+        assert(isinstance(actionList, (list, tuple, np.ndarray))) 
+        assert(len(actionList) == self.players)
+        
+        inputs = []
+        for action in actionList:
+            inputs += list(self._decode_discrete_action[action].copy())
+        
+        return inputs
 
-    def get_action_meaning(self, act):
-        assert(type(act) == int)
-        return self._combos[act]
+    def reward(self, reward):
+        if isinstance(reward, int): reward = [reward]
+        if self.players == 2: reward[1] = -reward[0]
+        return reward
+
+    def get_action_meaning(self, actionList):
+        assert(isinstance(actionList, (list, tuple, np.ndarray)))
+        assert(len(actionList) == self.players)
+
+        meanings = [self._combos[action] for action in actionList]
+        return meanings
 
 class StreetFighter2Discretizer(Discretizer):
     """
     Use Street Fighter 2
     based on https://github.com/openai/retro-baselines/blob/master/agents/sonic_util.py
     """
-    def __init__(self, env):
-        super().__init__(env=env, combos=[[], 
+    def __init__(self, env, players):
+        super().__init__(env=env, players=players, combos=[[], 
                                          ['UP'], 
                                          ['DOWN'], 
                                          ['LEFT'], 
@@ -103,13 +119,13 @@ class StreetFighter2Discretizer(Discretizer):
 """
 def main():
     env = retro.make(game='StreetFighterIISpecialChampionEdition-Genesis')
-    env = StreetFighter2Discretizer(env)
+    env = StreetFighter2Discretizer(env, env.players)
     env.reset()
     while True:
         env.render()
-        action = env.action_space.sample()
-        _, _, _, _ = env.step(action)
-        print(env.get_action_meaning(action))
+        actionList = [env.action_space.sample() for i in range(env.players)]
+        _, _, _, _ = env.step(actionList)
+        print(env.get_action_meaning(actionList))
 
     env.close()
 
