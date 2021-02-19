@@ -8,7 +8,7 @@ import numpy as np
 import retro
 import time
 
-class Discretizer(gym.ActionWrapper):
+class Discretizer(gym.Wrapper):
     """
     Wrap a gym environment and make it use discrete actions and allow for two player matches if the proper state is used.
     """

@@ -150,7 +150,7 @@ class Agent():
 
         # If the match is over and the agent's number of rounds won is 2, than they won the match
         if step[Agent.DONE_INDEX]:
-            key = "player{0}_matches_won".format(self.playerNumber)
+            key = "player{0}_matches_won".format(self.playerNumber + 1)
             if step[Agent.NEXT_STATE_INDEX][key] == 2: self.numMatchesWon += 1 
             
         self.memory.append(step) # Steps are stored as tuples to avoid unintended changes

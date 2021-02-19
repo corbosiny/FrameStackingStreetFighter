@@ -219,6 +219,7 @@ class Lobby():
                     if player.__class__.__name__ != "Agent" and review == True: 
                         player.reviewFight()
 
+            [print("Player {0} won {1} matches: ".format(i + 1, self.players[i].numMatchesWon)) for i in range(self.mode.value)]
         print("Training Run Completed with {0} episodes".format(episodes))
 
 
