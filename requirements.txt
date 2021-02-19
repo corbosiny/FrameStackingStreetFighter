@@ -1,6 +1,4 @@
-Keras==2.3.1
-tensorflow==2.4.0
-numpy==1.19.5
 gym==0.17.1
 gym_retro==0.7.0
-retro==2.9.0
+keras==2.3.1
+tensorflow==2.4.0

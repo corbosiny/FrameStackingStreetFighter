@@ -2,9 +2,8 @@ import retro
 import numpy
 import time
 from Discretizer import StreetFighter2Discretizer
-def main(game= 'StreetFighterIISpecialChampionEdition-Genesis',  state= "single_player_ryuVSchunli"):
-    #env = retro.make(game= game, state= state, players= 1, use_restricted_actions= retro.Actions.MULTI_DISCRETE)
-    env = retro.make(game= game, state= state, players= 1)
+def main(game= 'StreetFighterIISpecialChampionEdition-Genesis',  state= "two_player_ryuVSdhalism"):
+    env = retro.make(game= game, state= state, players= 2)
     env = StreetFighter2Discretizer(env)
     obs = env.reset()
     while True:

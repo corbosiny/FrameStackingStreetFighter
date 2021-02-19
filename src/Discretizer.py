@@ -8,7 +8,7 @@ import numpy as np
 import retro
 import time
 
-class Discretizer(gym.Wrapper):
+class Discretizer(gym.ActionWrapper):
     """
     Wrap a gym environment and make it use discrete actions and allow for two player matches if the proper state is used.
     """
@@ -46,12 +46,13 @@ class Discretizer(gym.Wrapper):
         self._decode_discrete_action = []
         self._combos = combos
         for combo in combos:
-            arr = np.array([False] * env.action_space.n)
+            arr = np.array([False] * int(env.action_space.n / self.players))
             for button in combo:
                 arr[buttons.index(button)] = True
             self._decode_discrete_action.append(arr)
 
         self.action_space = gym.spaces.Discrete(len(self._decode_discrete_action))
+
 
     def render(self, mode='human', **kwargs):
         """

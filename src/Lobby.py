@@ -212,7 +212,7 @@ class Lobby():
         for episodeNumber in range(episodes):
             print('Starting episode', episodeNumber)
             for state in states:
-                print('Loading {state}..')
+                print('Loading {0}..'.format(state))
                 self.play(state= state, render= render)
             
                 for player in self.players:
@@ -226,7 +226,9 @@ class Lobby():
 Make a test Agent and run it through one training run on single player mode of streetfighter
 """
 if __name__ == "__main__":
-    testLobby = Lobby()
+    testLobby = Lobby(mode= Lobby_Modes.TWO_PLAYER)
     agent = Agent()
+    agent2 = Agent()
     testLobby.addPlayer(agent)
+    testLobby.addPlayer(agent2)
     testLobby.executeTrainingRun(render= True)
