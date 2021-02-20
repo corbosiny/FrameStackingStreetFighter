@@ -37,13 +37,13 @@ class Agent():
     DEFAULT_MODELS_SUB_DIR = '{0}'                            # Models are further organized into subdirectories to avoid checkpoint overwrites by this naming scheme
     DEFAULT_MODEL_FILE_EXTENSION = '.model'                   # Extension used to identify saved model weight files versus logs
     DEFAULT_LOG_FILE_EXTENSION = '.log'                       # Extension used to identify training logs versus saved model weight files
-    
+
 
     ### End of static variables 
 
     ### Object methods
 
-    def __init__(self, load= False, name= None):
+    def __init__(self, load= False, name= None, character= "ryu"):
         """
         Initializes the agent and the underlying neural network
         
@@ -54,6 +54,8 @@ class Agent():
         name
             A string representing the name of the model that will be used when saving the model and the training logs
             Defaults to the class name if none are provided
+        character
+            String representing the name of the character this Agent plays as
 
         Returns
         -------
@@ -61,9 +63,11 @@ class Agent():
         """
         assert(isinstance(load, bool))
         assert(name is None or isinstance(name, str))
- 
+        assert(isinstance(character, str))
+
         if name is None: self.name = self.__class__.__name__
         else: self.name = name
+        self.character = character
         self.numMatchesPlayed = 0
         self.numMatchesWon = 0
 
@@ -290,7 +294,6 @@ class Agent():
         ----------
         data
             The training data for the model
-        
         model
             The model for the function to train
 
