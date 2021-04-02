@@ -4,7 +4,7 @@ The Trello board containing the current tasks and milestones can be found here: 
 
 ## Introduction
 
-"" Fill out
+"Fill out"
 
 ## Milestones
 This project has two main goals developing the training platform and developing the architecture to run community AI tournaments.
