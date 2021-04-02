@@ -15,7 +15,7 @@ class Discretizer(gym.Wrapper):
 
     ### Static Variables
 
-    FRAME_RATE = 1 / 150                                                                          # The time between frames if rendering is enabled
+    FRAME_RATE = 1 / 200                                                                          # The time between frames if rendering is enabled
 
     ### End of Static Variables 
 
@@ -39,7 +39,7 @@ class Discretizer(gym.Wrapper):
         assert(isinstance(env, retro.retro_env.RetroEnv))
         assert(isinstance(env.action_space, gym.spaces.MultiBinary))
         assert(isinstance(combos, (list, tuple)))
-        
+
         self.players = env.players
         super().__init__(env)
         buttons = env.unwrapped.buttons
@@ -174,6 +174,26 @@ class Discretizer(gym.Wrapper):
         meanings = [self._combos[action] for action in actionList]
         return meanings
 
+    def isActionableState(self, info):
+        """
+        Determines if any players have control over the game in it's current state
+        Can be overwrited by a wrapper discretizer for special conditions in other games
+
+        Parameters
+        ----------
+        info
+            Dictionary of the current frame's RAM variables being watched, keyworded values can be found in Data.json
+
+        Returns
+        -------
+        isActionable
+            A boolean variable describing whether the Agent has control over the given state of the game
+        """
+        raise NotImplementedError("Implement isActionable state in the child class")
+
+    def getCharacterList(self):
+        """Getter for the list of characters allowed in this game"""
+        return self.characterList
 
 class StreetFighter2Discretizer(Discretizer):
     """
@@ -181,6 +201,7 @@ class StreetFighter2Discretizer(Discretizer):
     based on https://github.com/openai/retro-baselines/blob/master/agents/sonic_util.py
     """
     def __init__(self, env):
+        self.ROUND_TIMER_NOT_STARTED = 39208      # Stores the round timer value before countdown has begun so the lobby can tell when to start recording steps
         super().__init__(env=env, combos=[[], 
                                          ['UP'], 
                                          ['DOWN'], 
@@ -233,6 +254,27 @@ class StreetFighter2Discretizer(Discretizer):
                                          ['Z', 'DOWN', 'LEFT'],
                                          ['Z', 'DOWN', 'RIGHT']])
 
+
+    def isActionableState(self, info):
+        if(not hasattr(self, 'prevHealths')): self.prevHealths = [info['player1_health'], info['player2_health']]
+
+        isActionable = True
+
+        if info['round_timer'] == self.ROUND_TIMER_NOT_STARTED:                                                       
+            isActionable = False
+        elif info['player1_health'] < 0 and info['player2_matches_won'] == 1 and self.prevHealths[0] >= 0: # There is one frame before a player death and the win is counted 
+            isActionable = True
+        elif info['player2_health'] < 0 and info['player1_matches_won'] == 1 and self.prevHealths[1] >= 0: # There is one frame before a player death and the win is counted
+            isActionable = True
+        elif info['player1_health'] < 0 or info['player2_health'] < 0:
+            isActionable = False
+        elif self.prevHealths[0] < 0 and info['player1_health'] == 0:
+            isActionable = False
+        elif self.prevHealths[1] < 0 and info['player2_health'] == 0:
+            isActionable = False
+        
+        self.prevHealths = [info['player1_health'], info['player2_health']]
+        return isActionable
 
 """
 Initializes an example discrete environment and randomly selects moves for the agent to make.

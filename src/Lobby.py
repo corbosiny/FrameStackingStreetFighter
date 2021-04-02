@@ -31,11 +31,9 @@ class Lobby():
 
     STATE_FILE_HEADERS = {Lobby_Modes.SINGLE_PLAYER : "single_player", Lobby_Modes.TWO_PLAYER : "two_player"}       # Lobby can be opened in single player or two player mode and will filter playable states accordingly
 
-    ROUND_TIMER_NOT_STARTED = {'StreetFighterIISpecialChampionEdition-Genesis' : 39208}                             # Stores the starting round timer for each ported game so the lobby can tell when to start recording steps
-
     ### End of Static Variables
 
-    def __init__(self, game= 'StreetFighterIISpecialChampionEdition-Genesis', mode= Lobby_Modes.SINGLE_PLAYER):
+    def __init__(self, game= 'StreetFighterIISpecialChampionEdition-Genesis', mode= Lobby_Modes.SINGLE_PLAYER, verbose= True):
         """
         Initializes the agent and the underlying neural network
 
@@ -47,6 +45,10 @@ class Lobby():
         mode
             An enum type that describes whether this lobby is for single player or two player matches
 
+        verbose
+            A boolean variable representing whether or not the print statements in the class are turned on
+            Error messages however are not turned off
+
         Returns
         -------
         None
@@ -56,6 +58,9 @@ class Lobby():
 
         self.game = game
         self.mode = mode
+        self.verbose = verbose
+        self.done = True
+        
         self.clearLobby()
 
     def getSaveStateList(self):
@@ -76,7 +81,7 @@ class Lobby():
         files = os.listdir('../{0}'.format(self.game))
         states = [file.split('.')[0] for file in files if file.split('.')[1] == 'state' and Lobby.STATE_FILE_HEADERS[self.mode] in file]
         stateCharacterNames = [state.split('_')[-1].split('VS') for state in states]
-        lobbyCharacterNames = [self.players[playerIndex].character for playerIndex in range(self.mode.value)]
+        lobbyCharacterNames = [self.players[playerIndex].getCharacter() for playerIndex in range(self.mode.value)]
         states = [state for i, state in enumerate(states) if stateCharacterNames[i][0:self.mode.value] == lobbyCharacterNames]
 
         return states
@@ -162,7 +167,7 @@ class Lobby():
         assert(isinstance(render, bool))
 
         self.initEnvironment(state)
-        [self.players[playerNum].prepareForNextFight(self.environment.action_space, playerNum) for playerNum in range(self.mode.value)]
+        [self.players[playerNum].prepareForNextFight(self.environment, playerNum) for playerNum in range(self.mode.value)]
         self.waitForActionableState(render)
 
         while not self.done:
@@ -174,12 +179,11 @@ class Lobby():
             if render: self.environment.render()
 
             # Record Results
-            print('recording')
             [self.players[playerNum].recordStep((self.lastObservation, self.lastInfo, self.lastAction[playerNum], self.lastReward[playerNum], obs, info, self.done)) for playerNum in range(self.mode.value)]
             self.lastObservation, self.lastInfo = [obs, info]                   # Overwrite after recording step so Agent remembers the previous state that led to this one
 
             # If the round is over wait until the next round starts to fight
-            self.waitForActionableState(render)
+            if not self.done: self.waitForActionableState(render)
 
         # Clean up Environment after the match is over
         self.environment.close()
@@ -198,30 +202,10 @@ class Lobby():
         None
         """
         assert(isinstance(render, bool))
-        while not self.done and not self.isActionableState(self.lastInfo):
+        
+        while not self.environment.isActionableState(self.lastInfo):
             self.lastObservation, _, self.done, self.lastInfo = self.environment.step([Lobby.NO_ACTION] * self.mode.value)
             if render: self.environment.render()
-
-
-    def isActionableState(self, info):
-        """
-        Determines if the Agent has control over the game in it's current state(the Agent is in hit stun, ending lag, etc.)
-        Parameters
-        ----------
-        info
-            Dictionary of the current RAM variables being wathced, keyworded values can be found in Data.json
-
-        Returns
-        -------
-        isActionable
-            A boolean variable describing whether the Agent has control over the given state of the game
-        """
-        if info['round_timer'] == Lobby.ROUND_TIMER_NOT_STARTED[self.game]:                                                       
-            return False
-        elif info['player1_health'] < 0 or info['player2_health'] < 0:
-            return False
-        else:
-            return True
 
     def executeTrainingRun(self, states= None, review= True, episodes= 1, render= False):
         """
@@ -256,25 +240,34 @@ class Lobby():
             states = self.getSaveStateList()
 
         for episodeNumber in range(episodes):
-            print('Starting episode', episodeNumber)
+            if self.verbose: print('Starting episode', episodeNumber)
             for state in states:
-                print('Loading {0}..'.format(state))
+                if self.verbose: print('Loading {0}..'.format(state))
                 self.play(state= state, render= render)
             
                 for player in self.players:
                     if player.__class__.__name__ != "Agent" and review == True: 
                         player.reviewFight()
 
-            [print("Player {0} won {1} matches: ".format(i + 1, self.players[i].numMatchesWon)) for i in range(self.mode.value)]
+            if self.verbose: print('Episode {0} completed'.format(episodeNumber))
 
+    def gameOver(self):
+        """Getter to check if the last ran game is complete"""
+        return self.done
+
+    def __repr__(self):
+        """What to return if type is called on this class or any child class"""
+        return "Lobby"
 
 """
 Make a test Agent and run it through one training run on single player mode of streetfighter
 """
 if __name__ == "__main__":
-    testLobby = Lobby(mode= Lobby_Modes.TWO_PLAYER)
-    agent = Agent()
-    agent2 = Agent(character="dhalism")
+    testLobby = Lobby(mode= Lobby_Modes.TWO_PLAYER, verbose= True)
+    agent = Agent(character= "blanka")
+    agent2 = Agent(character= "ryu")
     testLobby.addPlayer(agent)
     testLobby.addPlayer(agent2)
     testLobby.executeTrainingRun(render= True)
+    print(agent.getNumberOfWins())
+    print(agent2.getNumberOfWins())

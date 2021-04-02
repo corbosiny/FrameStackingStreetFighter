@@ -43,7 +43,7 @@ class Agent():
 
     ### Object methods
 
-    def __init__(self, load= False, name= None, character= "ryu"):
+    def __init__(self, load= False, name= None, character= "ryu", verbose= True):
         """
         Initializes the agent and the underlying neural network
         
@@ -56,6 +56,10 @@ class Agent():
             Defaults to the class name if none are provided
         character
             String representing the name of the character this Agent plays as
+
+        verbose
+            A boolean variable representing whether or not the print statements in the class are turned on
+            Error messages however are not turned off
 
         Returns
         -------
@@ -70,19 +74,20 @@ class Agent():
         self.character = character
         self.numMatchesPlayed = 0
         self.numMatchesWon = 0
+        self.verbose = verbose
 
         if self.__class__.__name__ != "Agent":
-            self.model = self.initializeNetwork()    								            # Only invoked in child subclasses, Agent has no network
-            if load: self.loadModel()
+            if not load: self.model = self.initializeNetwork()    								# Only invoked in child subclasses, Agent has no network
+            elif load: self.loadModel()
 
-    def prepareForNextFight(self, actionSpace, playerNumber):
+    def prepareForNextFight(self, env, playerNumber):
         """
         Clears the memory of the fighter so it can prepare to record the next fight and records what it's action space is
         
         Parameters
         ----------
-        actionSpace
-            Action space
+        env
+            the environment that the player will be fighting in, used to grab the action space
 
         playerNumber
             Integer representing whether the Agent is player 1(0) or player 2(1)
@@ -91,11 +96,12 @@ class Agent():
         -------
         None
         """
-        assert(isinstance(actionSpace, gym.spaces.discrete.Discrete))
+        #assert(isinstance(actionSpace, gym.spaces.discrete.Discrete))
         assert(isinstance(playerNumber, int))
         assert(playerNumber in [0, 1])
  
-        self.actionSpace = actionSpace
+        self.environment = env
+        self.actionSpace = env.action_space
         self.playerNumber = playerNumber
         self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                                      # Double ended queue that stores states during the game
         self.numMatchesPlayed += 1
@@ -155,7 +161,7 @@ class Agent():
         # If the match is over and the agent's number of rounds won is 2, than they won the match
         if step[Agent.DONE_INDEX]:
             key = "player{0}_matches_won".format(self.playerNumber + 1)
-            if step[Agent.NEXT_STATE_INDEX][key] == 2: self.numMatchesWon += 1 
+            if step[Agent.NEXT_STATE_INDEX][key] == 2 or step[Agent.STATE_INDEX][key] == 2: self.numMatchesWon += 1 
             
         self.memory.append(step) # Steps are stored as tuples to avoid unintended changes
 
@@ -184,18 +190,20 @@ class Agent():
         assert(lossUpdate is None or isinstance(lossUpdate, numbers.Number))
 
         totalDirPath = os.path.join(Agent.DEFAULT_MODELS_DIR_PATH, Agent.DEFAULT_MODELS_SUB_DIR.format(self.name))
-        self.model.save_weights(os.path.join(totalDirPath, self.getModelName()))
-        print('Model successfully saved')
+
+        self.model.save(os.path.join(totalDirPath, self.getModelName()))
+        if self.verbose: print('{0} Model successfully saved'.format(self.name))
+        
         if lossUpdate is not None:
             try:
                 with open(os.path.join(totalDirPath, self.getLogName()), 'a+') as file:
                     file.write(str(lossUpdate))
                     file.write('\n')
-                    print('Loss History Successfully Updated')
+                    if self.verbose: print('{0} Loss History Successfully Updated'.format(self.name))
             except Exception as e:
-                print('Trouble updating loss history:', e)
+                print('Trouble updating {0} loss history:'.format(self.name), e)
         else:
-            print('Loss History was not updated as there were no losses to report')
+            if self.verbose: print('{0} Loss History was not updated as there were no losses to report'.format(self.name))
 
     def loadModel(self):
         """
@@ -211,10 +219,10 @@ class Agent():
         """
         totalDirPath = os.path.join(Agent.DEFAULT_MODELS_DIR_PATH, Agent.DEFAULT_MODELS_SUB_DIR.format(self.name))
         try:
-            self.model.load_weights(os.path.join(totalDirPath, self.getModelName()))
-            print('Model successfully loaded')
+            self.model = keras.models.load_model(os.path.join(totalDirPath, self.getModelName()))
+            if self.verbose: print('{0} Model successfully loaded'.format(self.name))
         except Exception as e:
-            print('Trouble Loading Model:', e)
+            print('Trouble Loading {0} Model:'.format(self.name), e)
 
     def getModelName(self):
         """Returns the formatted model name for the current model"""
@@ -304,11 +312,31 @@ class Agent():
         """
         raise NotImplementedError("Implement trainNetwork in the inherited agent")
 
+    ### End of Abstract methods
+
+    def getName(self):
+        """Getter for the name of the model"""
+        return self.name
+
+    def getCharacter(self):
+        """Getter for the character name this Agent is playing as"""
+        return self.character
+
+    def getNumberOfMatchesPlayed(self):
+        """Getter for the number of matches this Agent has played"""
+        return self.numMatchesPlayed
+
+    def getNumberOfWins(self):
+        """Getter for the number of wins this Agent has"""
+        return self.numMatchesWon
+
     def __repr__(self):
         """What to return if type is called on this class or any child class"""
         return "Agent"
 
-    ### End of Abstract methods
+    def __str__(self):
+        """What to return if an Agent is used in a print statement"""
+        return self.name
 
 """
 Make a test Agent and run it through one training run on single player mode of streetfighter
