@@ -8,9 +8,9 @@ This project aims to create a customizable training environment that allows for 
 
 ## Milestones
 This project has three main goals:  
--Developing a portable training platform.
--Developing a competitive tournament matchmaking system.  
--Developing a suite of analytical tools.
+1. Developing a portable training platform.
+2. Developing a competitive tournament matchmaking system.  
+3. Developing a suite of analytical tools.
 
 ### Portable Platform
 This goal aims to design and implement a clear and concise interface between a backend training environment and user built models. A user's custom model needs to inherit from the Agent class which has four abstract functions it's children have to implement to stick to the interface. The user can implement any functionality they want inside their model as long as the interface between the Agent and the training environment is adhered to. The hope is to allow a broad range of models to be quickly developed that can make use of the same training platform without having to replicate work done on setting up the backend.
@@ -75,15 +75,15 @@ After the dependencies have been installed the necessary game files, all zipped 
 
 That should return the path to where the retro __init__.py script is stored, but this isn't where the game files should be added. One level up from that should be the data folder. Inside there should be the stable folder. Copy the **StreetFighterIISpecialChampionEdition-Genesis** folder that is in the top level of the repo here. Inside the folder should be the following files:
 
--rom.md    
--rom.sha    
--scenario.json  
--data.json  
--metadata.json  
--reward_script.lua   
--Several .state files split into two different categories:
-    - single_player states that load up one Agent into a stage from the actual single player mode of the game for the specified character
-    - two_player states that load up two Agents to play against one another
+1. rom.md    
+2. rom.sha    
+3. scenario.json  
+4. data.json  
+5. metadata.json  
+6. reward_script.lua   
+7. Several .state files split into two different categories:  
+    1. single_player states that load up one Agent into a stage from the actual single player mode of the game for the specified character  
+    2. two_player states that load up two Agents to play against one another  
 
 With that the game files should be correctly set up and you should be able to run a test agent. 
 
@@ -105,10 +105,10 @@ To make your own agent it is required that your model inherits from Agent.py and
 
 There are four main functions that need to be implemented in order to create a new user agent.
 
--getMove  
--initializeNetwork  
--prepareMemoryForTraining  
--trainNetwork
+1. getMove  
+2. initializeNetwork  
+3. prepareMemoryForTraining  
+4. trainNetwork
 
 Each section below gives a description of the interface required for each function and it's purpose. Further documentation can be seen inside the code of Agent.py
 
