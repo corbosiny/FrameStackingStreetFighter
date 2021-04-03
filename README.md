@@ -4,7 +4,7 @@ The Trello board containing the current tasks and milestones can be found here: 
 
 ## Introduction
 
-"Fill out"
+This project
 
 ## Milestones
 This project has two main goals developing the training platform and developing the architecture to run community AI tournaments.
@@ -52,33 +52,22 @@ This section will take you through how to get this repo up and running with the 
 ---
 ## Installing Dependancies
 
-This code only works with Python 3.6 or later. Before trying to install dependencies it is recommend to open the terminal and run:  
-`sudo apt-get update`  
-`sudo apt-get upgrade`  
-`sudo -H pip3 install --upgrade pip`  
+To download the necessary dependencies after cloning move into the top level of the repo and call:  
 
-To download the necessary dependencies after cloning the repo call:
 `pip3 install -r requirements.txt`
 
-This should be called in the top level directory of the repo. This will install the following libraries you will need to create game environments that serve as a wrapper abstracting the interface between your agent and the underlying emulator:
-
--gym  
--gym-retro   
--tensorflow   
--keras   
-
-These libraries can sometimes have serious issues installing themselves or their dependencies on a windows machine. It is recommended to work on Linux. The server we will be training on runs Linux and all libraries plus code have been confirmed to work on Ubuntu's latest stable distribution.
+These libraries can sometimes have serious issues installing themselves or their dependencies on a windows machine. If you run into trouble that doesn't seem easily fixed it is recommended to work on Linux. As long as you the dependancies get installed on your host machine the code should be cross platform. **Note: this will overwrite the versions of any of these libraries that already exist on your host machine.** If you wish to avoid this it is recommended to use a personal python virtual environment.
 
 ---
 ## Preparing the Game Files 
 
-After the dependencies have been installed the necessary game files, all zipped inside of the **StreetFighterIISpecialChampionEdition-Genesis** directory, can be setup. The game files need to be copied into the actual game data files inside the installation of the retro library on your local machine. This location can be found by running the following lines in the command line:  
+After the dependencies have been installed the necessary game files, all zipped inside of the **StreetFighterIISpecialChampionEdition-Genesis** directory, can be setup. The game files need to be copied into the data folder of the retro library installation on your local machine. This location can be found by running the following lines in the command line:  
 
 `python3`  
 `import retro`  
 `print(retro.__file__)`    
 
-That should return the path to where the retro __init__.py script is stored. One level up from that should be the data folder. Inside there should be the stable folder. Copy the **StreetFighterIISpecialChampionEdition-Genesis** folder that is in the top level of the repo here. Inside the folder should be the following files:
+That should return the path to where the retro __init__.py script is stored, but this isn't where the game files should be added. One level up from that should be the data folder. Inside there should be the stable folder. Copy the **StreetFighterIISpecialChampionEdition-Genesis** folder that is in the top level of the repo here. Inside the folder should be the following files:
 
 -rom.md    
 -rom.sha    
@@ -86,18 +75,20 @@ That should return the path to where the retro __init__.py script is stored. One
 -data.json  
 -metadata.json  
 -reward_script.lua   
--Several .state files with each having the name of a specific fighter from the game  
+-Several .state files split into two different categories:
+    - single_player states that load up one Agent into a stage from the actual single player mode of the game for the specified character
+    - two_player states that load up two Agents to play against one another
 
 With that the game files should be correctly set up and you should be able to run a test agent. 
 
 ---
 ## The first test run
 
-To double check that the game files were properly set up the example agent can be run. cd into the src directory. Then either run the following command on your terminal:
+To double check that the game files were properly set up the example agent can be run. cd into the src directory. Then either run the following command on your terminal or from your preferred IDE:
 
 `python3 Agent.py -r`
 
-Or you can open Agent.py and execute it from your preferred IDE of choice by supplying the -r flag during execution flag. Without that flag the Agent will play the games however they will not render and you will not be able to watch it. When running on the server via an ssh shell it is important to leave this flag off as an error will be thrown when trying to render. This is Agent that essentially button mashes. It does a random move every frame update despite what is going on in the game. If everything was installed correctly it should simply one by one open up each save state in the game directory and run through the fights set up for it. This will involve a small window popping up showing the game running at a very high speed. Once the fight is over a new window should open up with the next fight. Once all fights are over the program should kill itself and close all windows.
+The -r sets the render flag so we can visualize it working. Without that flag the Agent will play the games but they will not render. This Agent should essentially just button mash and look like it is playing randomly. If everything was installed correctly it should run through each level of the single player game as ryu. A small window will pop up showing the current stage. Once the fight is over a new window should open up with the next stage. Once all stages are over the program should kill itself and close all windows.
 
 ---
 ## How to make an agent
