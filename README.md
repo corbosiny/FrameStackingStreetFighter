@@ -158,15 +158,15 @@ A training episode consists of one play through of each save state in the game f
 
 ### Watch Agent
 
-Watch Agent is a basic script that allows the user to load in a pretrained Agent and visualize it playing the game. It is useful to use this in conjunction with checkpoints in order to pause an Agent between episodes and view it's progress to understand if it's headed in the right direction and that things are working correctly.
+Watch Agent is a basic script that allows the user to qucikly load in a specific Agent and visualize it playing through the single player mode without having to setup an entire tournament. It is useful to use this in conjunction with checkpoints in order to pause an Agent between episodes and view it's progress to understand if it's headed in the right direction and if things seem to be working correctly.
 
 ## Json Files
 
-There are three json files that the gym environment reads in order to setup the high level "rules" of the emulation. These files are metadata.json, data.json, and scenario.json. 
+There are three json files and a lua script that the gym environment reads in order to setup the emulation environment. These files are metadata.json, data.json, scenario.json, and reward_script.lua. 
 
 ### Metadata.json
 
-The metadata.json file holds high level global information about the game environment. For now this simply tells the environment the default save state that the game ROM should launch in if none has been selected. 
+The metadata.json file can hold high level global information about the game environment. For now this simply tells the environment the default save state that the game ROM should launch in if none has been selected. 
 
 ### Data.json
 
@@ -176,7 +176,7 @@ https://www.youtube.com/watch?v=zsPLCIAJE5o&t=900s
 
 ### Scenario.json
 
-Scenario.json specifies several conditions over which that define the goal of the simulation or specify what criteria the agent will be judged on for rewards. The main specifications are the reward function and the done flag. The reward function for the StreetFighterAgents is seperated into it's own lua script to make designing a more complex reward function easier. The script can be imported and pointed to for use by gym-retro's environment for it's reward function by including the code snippet in scenario.json as follows:
+Scenario.json specifies several hyper parameters describing the game environment, such as when it is finished, which reward script is being used, and how large the emulator window will be. The reward function for the StreetFighterAgents is seperated into it's own lua script to make designing a more complex reward function easier. The script is imported for use by gym-retro's environment via the code snippet in scenario.json as follows:
 
 ```
 
@@ -191,11 +191,11 @@ Scenario.json specifies several conditions over which that define the goal of th
 
 #### Reward Function
 
-The reward function specifies what variables make up the reward function and what weights are assigned, whether that be positive or negative, to each variable. After each action is taken by an agent a reward calculated by this function is returned to the agent. This is then recorded and stored for later training after all fights in an epoch are finished. For now the default reward function utilizes the agent's score, agent's health, the enemy health, the number of rounds the agent has won, and the number of rounds the enemy has won. 
+The reward function specifies what game state variables factor into the reward and what weights are assigned to them. Each game state variable can either positively or negatively affect the reward for each player. After each action is taken by both players a reward is calculated and returned to both players. The reward is mirrored for both players so if player 1 recieves a reward of positive 100 then player 2 will receive a score of -100 because they are in direct competition with one another. The reward for that time step is then recorded and stored for later training after all fights in an epoch are finished. For now the default reward function utilizes game state variables such as the change in each player's health and whether a round was won or lost on that time step. 
 
 #### Done
 
-Done is a flag that signifies whether the current environment has completed. Currently Done is set if the enemy or the agent get two round wins, which in game is what determines if a match is over. So once the match is over the agent moves onto the next save state.
+Done is a flag that signifies whether the current environment has completed. If True the match will be ended the Agents will then be given time to train. Currently Done is set to True once either player has won two rounds. 
 
 ---
 ## Generating New Save States
