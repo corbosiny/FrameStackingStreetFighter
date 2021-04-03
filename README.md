@@ -102,18 +102,11 @@ Or you can open Agent.py and execute it from your preferred IDE of choice by sup
 ---
 ## How to make an agent
 
-To make your own agent it is recommended to make a class that inherits from Agent.py. Agent.py contains several useful helper functions that allow you to:
-
--Find and loop through every save state  
--Handle opening and cleaning up of the gym environment  
--Recording data during the fights
--And even training the agent after the fights
-
-Some of these methods aren't filled in but the overall framework in place makes it easy to drop in your own versions of the getMove, train, and initialize network functions such that there is little work outside of network design that has to be done to get your agent up and running. The goal is to create a streamlined platform to rapidly prototype, train, and deploy new agents instead of starting for scratch every time. As well enforcing the interface for the agent class allows for high level software to be developed that can import various user created agents without fear of breaking due to interface issues. 
+To make your own agent it is required that your model inherits from Agent.py and adheres to the specific interface defined within. The goal is to create a streamlined platform to rapidly prototype, train, and deploy new agents instead of starting for scratch every time. As well enforcing the interface for the agent class allows for high level software to be developed that can import various user created agents without fear of breaking due to specific interface issues. 
 
 ### Agent class
 
-There are four main functions that need to be implemented in order to create a new intelligent agent.
+There are four main functions that need to be implemented in order to create a new user agent.
 
 -getMove  
 -initializeNetwork  
@@ -124,7 +117,7 @@ Each section below gives a description of the interface required for each functi
 
 #### getMove
 
-Get move simply returns a multivariate array of the action space of the game. A one in a given index represents the button corresponding to that index being pressed, a zero means the button is not pressed. This way multiple buttons can be pushed in one move and special moves can be preformed. This function must take in the observation and info about the current state. The observation is the contents of each pixel of the game screen and info is a dictionary containing key word mapped variables as specified in data.json. The indices correspond to Up, Down, Left, Right, A, B, X, Y, L, R.
+Get move must return an integer that represents the index into the discrete action space for the button combination the agent wants to press. A full list of the discrete action space can be found inside Discretizer.py
 
 #### initializeNetwork
 
