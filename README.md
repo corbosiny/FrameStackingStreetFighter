@@ -4,16 +4,22 @@ The Trello board containing the current tasks and milestones can be found here: 
 
 ## Introduction
 
-This project
+This project aims to create a customizable training environment that allows for rapid prototyping, training, and evaluation of AI models learing to play Street Fighter 2 championship edition via competetive tournaments. This training platform is also portable for a variety of retro fighting games with minimal background setup.  
 
 ## Milestones
-This project has two main goals developing the training platform and developing the architecture to run community AI tournaments.
+This project has three main goals:  
+-Developing a portable training platform.
+-Developing a competitive tournament matchmaking system.  
+-Developing a suite of analytical tools.
 
-### Training Platform
-This goal aims to design and implement a clear and concise interface between a backend training environment that handles running the emulator and any custom AI Agent the users want to develop. The training environment will ask the Agents for moves when they are able to act, gather training data for use after the game, handle shifting through training states, and log the results of the training over several episodes. A user's custom Agent need only inherit from the Agent interface and implement the abstract functions required of it's children. The user can implement any functionality on top of those functions as they see fit as long as the interface between the Agent and the training environment is held to. The hope is to allow a broad range of AI types and algorithms to be developed that can all make use of the same training platform without having to replicate work done on setting up the backend.
+### Portable Platform
+This goal aims to design and implement a clear and concise interface between a backend training environment and user built models. A user's custom model needs to inherit from the Agent class which has four abstract functions it's children have to implement to stick to the interface. The user can implement any functionality they want inside their model as long as the interface between the Agent and the training environment is adhered to. The hope is to allow a broad range of models to be quickly developed that can make use of the same training platform without having to replicate work done on setting up the backend.
 
-### Community Tournaments
-This goal aims to design a system wherein user submitted AIs can compete against one another in a simulated tournament to decide upon the best figher. These tournaments will be able to be viewed by a human audience over the internet similar to salty bets. 
+### Competetive Tournaments
+This goal aims to design a system wherein various user models can compete against one another in a simulated tournament to be placed on a leaderboard ranking their performances.  In single player mode a model eventually learns to overfit by learning the state machine behind Street Fighter's AI and can win every stage. So by training against a variety of opponents who are also improving the hope is that it will allow each model a much more realistic and dynamic training environment. Games can even be logged and used as training data for future models who did not even play that match, akin to an athlete watching a highlight real and drawing knowledge from it.
+
+### Analytical Support
+This goal aims to create a comprehensive suite of data collection tools that can allow for easy monitoring of a model to evaluate which aspects of the game it is improving on.
 
 ## Repo Organization
 This section will explain the organization of the repo, if you are trying to install the dependancies then skip to the next section.  
@@ -47,7 +53,7 @@ After that is the Code of Conduct for working on this project, and finally there
 ---
 # Getting Started
 
-This section will take you through how to get this repo up and running with the example agents, make your own test agents, and also how to create your own save states to test your agents on. 
+This section will take you through how to setup the repo, run an example Agent, make your own Agents, and how to create your own save states to train your Agents on. 
 
 ---
 ## Installing Dependancies
