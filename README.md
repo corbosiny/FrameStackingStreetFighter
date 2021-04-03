@@ -117,15 +117,15 @@ Each section below gives a description of the interface required for each functi
 
 #### getMove
 
-Get move must return an integer that represents the index into the discrete action space for the button combination the agent wants to press. A full list of the discrete action space can be found inside Discretizer.py
+Get move takes in the current image oberservation of the game and the RAM data and must return an integer that represents the index into the discrete action space for the button combination the agent wants to press. A full list of the discrete action space can be found inside Discretizer.py
 
 #### initializeNetwork
 
-initializeNetwork does whatever under the hood set up needs to be done to either create a network from scratch, if the load flag is supplied when initializing an Agent then a pretrained model will be loaded instead and this function does not need to be implemented. It does not take in any parameters but its expected to return the model desired for the Agent.
+initializeNetwork creats and initializes the model's underlying network and returns it, if the load flag is supplied when initializing an Agent then a previously pretrained model will be loaded instead and this function does not need to be implemented. It does not take in any parameters but its expected to return the model desired for the Agent.
 
 #### prepareMemoryForTraining
 
-As the Agent plays it records the events during a fight. It records observation, state, action, reward, next observation, next state reward sequences. Each index in the memory buffer of the Agent demonstrates a state the Agent was presented with, the action it took, the next state the action led to, the reward the Agent received for that action, and a flag specifying if that game instance is finished. State and next state are both dictionaries containing the RAM data of the game at those times as specified in Data.json. The action is an array that represents a sampling of the action space as presented by the Agent where a one represents a given button being pressed and a zero is that button not being pressed. And finally Done is a boolean flag where True means the current game instance is over. Is expected to return an array containing the full set of prepared training data. The elements of these steps may change over time but their indices are stored in a set of static variables in Agent.py as follows:
+As the Agent plays it records the events during a fight. It records observation, state, action, reward, next observation, next state reward sequences. Each index in the memory buffer of the Agent demonstrates a state the Agent was presented with, the action it took, the next state the action led to, the reward the Agent received for that action, and a flag specifying if that game instance is finished. State and next state are both dictionaries containing the RAM data of the game at those times as specified in Data.json. The action is an integer representing the index in the action space of the button combination the Agent chose to execute that frame. And finally Done is a boolean flag where True means the current game instance is over. Is expected to return an array containing the full set of prepared training data. There is no specific format this data must be in when returned, it is immediately passed to your trainNetwork function right after. The elements of each data point fed to this function to prepare may change over time but their indices are stored in a set of static variables in Agent.py that you can use:
 
 -OBSERVATION_INDEX   
 -STATE_INDEX   
@@ -135,19 +135,19 @@ As the Agent plays it records the events during a fight. It records observation,
 -NEXT_STATE_INDEX   
 -DONE_INDEX   
 
-A child class can access them by calling {class_name}.{variable_name}. Indexing into a step to get the next observation from the DeepQAgent for example would look like:
+A child class can access them by calling {class_name}.{variable_name}, where {class.name} is the name of your child class. Indexing into a step to get the next observation from the DeepQAgent for example would look like:
 
 `step[DeepQAgent.NEXT_OBSERVATION_INDEX]`
 
 #### trainNetwork
 
-Takes in the prepared training data and the current model and runs a desired amount of training epochs on it. The trained model is then returned once training is finished.
+Takes in the prepared training data and the current model and runs the desired amount of training epochs on it. The trained model must then ;be returned once training is finished.
 
 ---
 
 ### Training Checkpoints
 
-A training episode consists of one play through of each save state in the game folder. Once the episode is complete training will be run and after the trained and updated model is returned a checkpoint will be made by Agent.py in order to save the model for later use. As well custom training logs will be made for each unique class that is training that will show the training error of the Agent as it is learning. These logs and models are stored in the logs and models directories respectively and are formatted as models/{class_name}{Log} and logs/{class_name}{Model}. Note that the formatting is based on the class name and so only one instance of a model for each unique class can be stored as of now.
+Once a round of training is complete and the updated model is returned a checkpoint will be made by Agent.py that saves the trained model as a backup. As well a custom training log will be that will show the training error of the Agent as it is learning. These logs and models are stored in their own unique logs and model directories based on the name of their model. The naming convention is local_models/{class_name}/{class_name}.model and local_models/{class_name}/{class_name}.log. A model can be given a name upon initialization, if none is given it's class.name variable will default to the class name itself. The local models folder is used to only train models locally and the git ignore inside prevents these models from being tracked so to avoid merge conflicts. There is a pretrained models folder that example test models can be put inside.
 
 ### Watch Agent
 
@@ -241,7 +241,7 @@ An Agent that actually is controlled by a human. When the Agent is called into a
 ---
 ## Further Help
 
-If you have any further questions on how to use or modify this project feel free to open up an issue so that others can see the discussion and benifit from the answer. However before asking any issues please check to see if your issue has been answered before to avoid redundancy. If you have any questions regarding contributing please refer to the contributing guidelines for more information. 
+Feel free to open up issues if running into problems with this project. However before asking any issues please check to see if your issue has already been answered. If you have any questions regarding contributing please refer to the contributing guidelines for more information. 
 
 ---
 ## References:
