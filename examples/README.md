@@ -13,15 +13,3 @@ Runs through each specific index in the input space and returns a human readable
 
 ## customDiscretizerExample.py
 Demonstrates how to build a custom discretization of the input space that works in human readable input specifications vs arrays of flags mapping to specific button presses.
-
-## multiFrameInputsExmaple
-Demonstrates how a buffer of inputs across multiple frames can be fed into the emulator in order to accomplish combos or other special techniques. Does not use any custom input space discretizer
-
-## CustomMoveList.py
-An example class for how to make a custom move list dictionary for a character that maps moves to multiframe input arrays in order for excution by the emulator.
-
-## tkinterUserInputExample.py
-Demonstrates how to use tkinter for non-blocking user input scanning.
-
-## humanVsComputerExample.py
-Uses tkinter to monitor human inputs and excute them in the emulator without blocking to demonstrate how a human could be pitted against a trained AI in a fair manner.
