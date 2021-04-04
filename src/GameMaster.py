@@ -18,7 +18,12 @@ class GameMaster(threading.Thread):
     documented and can be viewed on a leaderboard that details the model rankings.
     """
 
-    PLAYER_LISTING_PATH = ""
+    # Static variables that deal with parsing the roster to initialize the fighters
+    PLAYER_ROSTER_PATH = "roster.txt"
+    CLASS_NAME_INDEX = 0                # The class name is the name of the library to import for this fighter
+    MODEL_NAME_INDEX = 1                # The model name is the actual name of model used when saving checkpoints
+    CHARACTER_INDEX  = 2                # The name of the character this player will be playing as
+    LOAD_INDEX       = 3                # Whether or not to load an existing model 
 
     ### Static methods
 
@@ -37,6 +42,30 @@ class GameMaster(threading.Thread):
             The list of initialized Agents
         """
         players = []
+        with open(GameMaster.PLAYER_ROSTER_PATH, 'r') as roster:
+            lines = roster.readlines()
+            for line in lines[1:]:
+                elements = line.split(',')
+                elements = [element.strip() for element in elements]
+                className = elements[GameMaster.CLASS_NAME_INDEX]
+                modelName = elements[GameMaster.MODEL_NAME_INDEX]
+                if modelName == '':
+                    modelName = className
+                character = elements[GameMaster.CHARACTER_INDEX]
+                load = elements[GameMaster.LOAD_INDEX]
+                if load == '' or load == 'False':
+                    load = False
+                else: load = True
+
+                player = None
+                if className != "Agent":
+                    exec("from {0} import {0}".format(className))
+                    exec("player = {0}(load= {1}, name= \"{2}\", character= \"{3}\"); players.append(player)".format(className, load, modelName, character))
+                else:
+                    player = Agent.Agent(name= modelName, character= character)
+                    players.append(player)
+
+        print(players)
         return players
 
     ### End of static methods
@@ -68,7 +97,7 @@ class GameMaster(threading.Thread):
         None
         """
         assert(isinstance(players, (list, tuple)))
-        assert(all([player.__repr__() == "Agent" for player in players]))
+        assert(all([player.__repr__() == "Agent" or issubclass(player.__class__, Agent.Agent) for player in players]))
         assert(isinstance(roundsToRun, int))
         assert(isinstance(reviewGames, bool))
         assert(isinstance(viewGames, bool))

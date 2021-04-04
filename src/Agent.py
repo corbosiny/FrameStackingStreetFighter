@@ -43,7 +43,7 @@ class Agent():
 
     ### Object methods
 
-    def __init__(self, load= False, name= None, character= "ryu", verbose= True):
+    def __init__(self, load= False, name= None, character= "ryu", verbose= False):
         """
         Initializes the agent and the underlying neural network
         
@@ -51,9 +51,11 @@ class Agent():
         ----------
         load
             A boolean flag that specifies whether to initialize the model from scratch or load in a pretrained model
+        
         name
             A string representing the name of the model that will be used when saving the model and the training logs
             Defaults to the class name if none are provided
+
         character
             String representing the name of the character this Agent plays as
 
@@ -75,6 +77,7 @@ class Agent():
         self.numMatchesPlayed = 0
         self.numMatchesWon = 0
         self.verbose = verbose
+        self.playerNumber = 0
 
         if self.__class__.__name__ != "Agent":
             if not load: self.model = self.initializeNetwork()    								# Only invoked in child subclasses, Agent has no network

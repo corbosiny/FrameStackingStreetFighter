@@ -1,0 +1,5 @@
+Class_Name,Model_Name,Character,Load
+Agent,,ken,
+Agent,,chunli,
+Agent,,guile,
+DeepQAgent,DeepQTest,ryu,False
