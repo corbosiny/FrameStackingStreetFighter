@@ -101,7 +101,18 @@ The -r sets the render flag so we can visualize it working. Without that flag th
 
 To make your own agent it is required that your model inherits from Agent.py and adheres to the specific interface defined within. The goal is to create a streamlined platform to rapidly prototype, train, and deploy new agents instead of starting for scratch every time. As well enforcing the interface for the agent class allows for high level software to be developed that can import various user created agents without fear of breaking due to specific interface issues. 
 
-### Agent class
+### Input Parameters of the Agent Interface
+
+There are four parameters your Agent has to be able to accpet when it's constructor is called.
+
+1. load - a boolean that specifices whether or not to load a pretrained model or start from scratch with this agent
+2. name - a string representing the name of the model, will be used when creating directories for it's training checkpoints
+3. character - a string representing which character in the fighting game roster this agent will play as
+4. verbose - a boolean that specifies whether or not to print various debug statements to the console during execution
+
+These four parameters must be passed into the super constructor of the Agent class.
+
+### Abstract Methods of the Agent Interface
 
 There are four main functions that need to be implemented in order to create a new user agent.
 
