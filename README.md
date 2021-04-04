@@ -4,16 +4,22 @@ The Trello board containing the current tasks and milestones can be found here: 
 
 ## Introduction
 
-AIVO is a project aimed at making a training platform using OpenAI Gym-Retro to quickly develop custom AI's trained to play Street Fighter 2 Championship Edition using reinforcement learning techniques. The name is a play on EVO, short for the evolutionary championship series. AIVO stands for the Artifical Intelligence Championship series. 
+This project aims to create a customizable training environment that allows for rapid prototyping, training, and evaluation of AI models learing to play Street Fighter 2 championship edition via competetive tournaments. This training platform is also portable for a variety of retro fighting games with minimal background setup.  
 
 ## Milestones
-This project has two main goals developing the training platform and developing the architecture to run community AI tournaments.
+This project has three main goals:  
+1. Developing a portable training platform.
+2. Developing a competitive tournament matchmaking system.  
+3. Developing a suite of analytical tools.
 
-### Training Platform
-This goal aims to design and implement a clear and concise interface between a backend training environment that handles running the emulator and any custom AI Agent the users want to develop. The training environment will ask the Agents for moves when they are able to act, gather training data for use after the game, handle shifting through training states, and log the results of the training over several episodes. A user's custom Agent need only inherit from the Agent interface and implement the abstract functions required of it's children. The user can implement any functionality on top of those functions as they see fit as long as the interface between the Agent and the training environment is held to. The hope is to allow a broad range of AI types and algorithms to be developed that can all make use of the same training platform without having to replicate work done on setting up the backend.
+### Portable Platform
+This goal aims to design and implement a clear and concise interface between a backend training environment and user built models. A user's custom model needs to inherit from the Agent class which has four abstract functions it's children have to implement to stick to the interface. The user can implement any functionality they want inside their model as long as the interface between the Agent and the training environment is adhered to. The hope is to allow a broad range of models to be quickly developed that can make use of the same training platform without having to replicate work done on setting up the backend.
 
-### Community Tournaments
-This goal aims to design a system wherein user submitted AIs can compete against one another in a simulated tournament to decide upon the best figher. These tournaments will be able to be viewed by a human audience over the internet similar to salty bets. 
+### Competetive Tournaments
+This goal aims to design a system wherein various user models can compete against one another in a simulated tournament to be placed on a leaderboard ranking their performances.  In single player mode a model eventually learns to overfit by learning the state machine behind Street Fighter's AI and can win every stage. So by training against a variety of opponents who are also improving the hope is that it will allow each model a much more realistic and dynamic training environment. Games can even be logged and used as training data for future models who did not even play that match, akin to an athlete watching a highlight real and drawing knowledge from it.
+
+### Analytical Support
+This goal aims to create a comprehensive suite of data collection tools that can allow for easy monitoring of a model to evaluate which aspects of the game it is improving on.
 
 ## Repo Organization
 This section will explain the organization of the repo, if you are trying to install the dependancies then skip to the next section.  
@@ -47,92 +53,76 @@ After that is the Code of Conduct for working on this project, and finally there
 ---
 # Getting Started
 
-This section will take you through how to get this repo up and running with the example agents, make your own test agents, and also how to create your own save states to test your agents on. 
+This section will take you through how to setup the repo, run an example Agent, make your own Agents, and how to create your own save states to train your Agents on. 
 
 ---
 ## Installing Dependancies
 
-This code only works with Python 3.6 or later. Before trying to install dependencies it is recommend to open the terminal and run:  
-`sudo apt-get update`  
-`sudo apt-get upgrade`  
-`sudo -H pip3 install --upgrade pip`  
+To download the necessary dependencies after cloning move into the top level of the repo and call:  
 
-To download the necessary dependencies after cloning the repo call:
 `pip3 install -r requirements.txt`
 
-This should be called in the top level directory of the repo. This will install the following libraries you will need to create game environments that serve as a wrapper abstracting the interface between your agent and the underlying emulator:
-
--gym  
--gym-retro   
--tensorflow   
--keras   
-
-These libraries can sometimes have serious issues installing themselves or their dependencies on a windows machine. It is recommended to work on Linux. The server we will be training on runs Linux and all libraries plus code have been confirmed to work on Ubuntu's latest stable distribution.
+These libraries can sometimes have serious issues installing themselves or their dependencies on a windows machine. If you run into trouble that doesn't seem easily fixed it is recommended to work on Linux. As long as you the dependancies get installed on your host machine the code should be cross platform. **Note: this will overwrite the versions of any of these libraries that already exist on your host machine.** If you wish to avoid this it is recommended to use a personal python virtual environment.
 
 ---
 ## Preparing the Game Files 
 
-After the dependencies have been installed the necessary game files, all zipped inside of the **StreetFighterIISpecialChampionEdition-Genesis** directory, can be setup. The game files need to be copied into the actual game data files inside the installation of the retro library on your local machine. This location can be found by running the following lines in the command line:  
+After the dependencies have been installed the necessary game files, all zipped inside of the **StreetFighterIISpecialChampionEdition-Genesis** directory, can be setup. The game files need to be copied into the data folder of the retro library installation on your local machine. This location can be found by running the following lines in the command line:  
 
 `python3`  
 `import retro`  
 `print(retro.__file__)`    
 
-That should return the path to where the retro __init__.py script is stored. One level up from that should be the data folder. Inside there should be the stable folder. Copy the **StreetFighterIISpecialChampionEdition-Genesis** folder that is in the top level of the repo here. Inside the folder should be the following files:
+That should return the path to where the retro __init__.py script is stored, but this isn't where the game files should be added. One level up from that should be the data folder. Inside there should be the stable folder. Copy the **StreetFighterIISpecialChampionEdition-Genesis** folder that is in the top level of the repo here. Inside the folder should be the following files:
 
--rom.md    
--rom.sha    
--scenario.json  
--data.json  
--metadata.json  
--reward_script.lua   
--Several .state files with each having the name of a specific fighter from the game  
+1. rom.md    
+2. rom.sha    
+3. scenario.json  
+4. data.json  
+5. metadata.json  
+6. reward_script.lua   
+7. Several .state files split into two different categories:  
+    1. single_player states that load up one Agent into a stage from the actual single player mode of the game for the specified character  
+    2. two_player states that load up two Agents to play against one another  
 
 With that the game files should be correctly set up and you should be able to run a test agent. 
 
 ---
 ## The first test run
 
-To double check that the game files were properly set up the example agent can be run. cd into the src directory. Then either run the following command on your terminal:
+To double check that the game files were properly set up the example agent can be run. cd into the src directory. Then either run the following command on your terminal or from your preferred IDE:
 
 `python3 Agent.py -r`
 
-Or you can open Agent.py and execute it from your preferred IDE of choice by supplying the -r flag during execution flag. Without that flag the Agent will play the games however they will not render and you will not be able to watch it. When running on the server via an ssh shell it is important to leave this flag off as an error will be thrown when trying to render. This is Agent that essentially button mashes. It does a random move every frame update despite what is going on in the game. If everything was installed correctly it should simply one by one open up each save state in the game directory and run through the fights set up for it. This will involve a small window popping up showing the game running at a very high speed. Once the fight is over a new window should open up with the next fight. Once all fights are over the program should kill itself and close all windows.
+The -r sets the render flag so we can visualize it working. Without that flag the Agent will play the games but they will not render. This Agent should essentially just button mash and look like it is playing randomly. If everything was installed correctly it should run through each level of the single player game as ryu. A small window will pop up showing the current stage. Once the fight is over a new window should open up with the next stage. Once all stages are over the program should kill itself and close all windows.
 
 ---
 ## How to make an agent
 
-To make your own agent it is recommended to make a class that inherits from Agent.py. Agent.py contains several useful helper functions that allow you to:
-
--Find and loop through every save state  
--Handle opening and cleaning up of the gym environment  
--Recording data during the fights
--And even training the agent after the fights
-
-Some of these methods aren't filled in but the overall framework in place makes it easy to drop in your own versions of the getMove, train, and initialize network functions such that there is little work outside of network design that has to be done to get your agent up and running. The goal is to create a streamlined platform to rapidly prototype, train, and deploy new agents instead of starting for scratch every time. As well enforcing the interface for the agent class allows for high level software to be developed that can import various user created agents without fear of breaking due to interface issues. 
+To make your own agent it is required that your model inherits from Agent.py and adheres to the specific interface defined within. The goal is to create a streamlined platform to rapidly prototype, train, and deploy new agents instead of starting for scratch every time. As well enforcing the interface for the agent class allows for high level software to be developed that can import various user created agents without fear of breaking due to specific interface issues. 
 
 ### Agent class
 
-There are four main functions that need to be implemented in order to create a new intelligent agent.
+There are four main functions that need to be implemented in order to create a new user agent.
 
--getMove  
--initializeNetwork  
--prepareMemoryForTraining  
--trainNetwork
+1. getMove  
+2. initializeNetwork  
+3. prepareMemoryForTraining  
+4. trainNetwork
 
 Each section below gives a description of the interface required for each function and it's purpose. Further documentation can be seen inside the code of Agent.py
 
 #### getMove
 
-Get move simply returns a multivariate array of the action space of the game. A one in a given index represents the button corresponding to that index being pressed, a zero means the button is not pressed. This way multiple buttons can be pushed in one move and special moves can be preformed. This function must take in the observation and info about the current state. The observation is the contents of each pixel of the game screen and info is a dictionary containing key word mapped variables as specified in data.json. The indices correspond to Up, Down, Left, Right, A, B, X, Y, L, R.
+Get move takes in the current image oberservation of the game and the RAM data and must return an integer that represents the index into the discrete action space for the button combination the agent wants to press. A full list of the discrete action space can be found inside Discretizer.py
 
 #### initializeNetwork
 
-initializeNetwork does whatever under the hood set up needs to be done to either create a network from scratch, if the load flag is supplied when initializing an Agent then a pretrained model will be loaded instead and this function does not need to be implemented. It does not take in any parameters but its expected to return the model desired for the Agent.
+initializeNetwork creats and initializes the model's underlying network and returns it, if the load flag is supplied when initializing an Agent then a previously pretrained model will be loaded instead and this function does not need to be implemented. It does not take in any parameters but its expected to return the model desired for the Agent.
 
 #### prepareMemoryForTraining
 
-As the Agent plays it records the events during a fight. It records observation, state, action, reward, next observation, next state reward sequences. Each index in the memory buffer of the Agent demonstrates a state the Agent was presented with, the action it took, the next state the action led to, the reward the Agent received for that action, and a flag specifying if that game instance is finished. State and next state are both dictionaries containing the RAM data of the game at those times as specified in Data.json. The action is an array that represents a sampling of the action space as presented by the Agent where a one represents a given button being pressed and a zero is that button not being pressed. And finally Done is a boolean flag where True means the current game instance is over. Is expected to return an array containing the full set of prepared training data. The elements of these steps may change over time but their indices are stored in a set of static variables in Agent.py as follows:
+As the Agent plays it records the events during a fight. It records observation, state, action, reward, next observation, next state reward sequences. Each index in the memory buffer of the Agent demonstrates a state the Agent was presented with, the action it took, the next state the action led to, the reward the Agent received for that action, and a flag specifying if that game instance is finished. State and next state are both dictionaries containing the RAM data of the game at those times as specified in Data.json. The action is an integer representing the index in the action space of the button combination the Agent chose to execute that frame. And finally Done is a boolean flag where True means the current game instance is over. Is expected to return an array containing the full set of prepared training data. There is no specific format this data must be in when returned, it is immediately passed to your trainNetwork function right after. The elements of each data point fed to this function to prepare may change over time but their indices are stored in a set of static variables in Agent.py that you can use:
 
 -OBSERVATION_INDEX   
 -STATE_INDEX   
@@ -142,31 +132,31 @@ As the Agent plays it records the events during a fight. It records observation,
 -NEXT_STATE_INDEX   
 -DONE_INDEX   
 
-A child class can access them by calling {class_name}.{variable_name}. Indexing into a step to get the next observation from the DeepQAgent for example would look like:
+A child class can access them by calling {class_name}.{variable_name}, where {class.name} is the name of your child class. Indexing into a step to get the next observation from the DeepQAgent for example would look like:
 
 `step[DeepQAgent.NEXT_OBSERVATION_INDEX]`
 
 #### trainNetwork
 
-Takes in the prepared training data and the current model and runs a desired amount of training epochs on it. The trained model is then returned once training is finished.
+Takes in the prepared training data and the current model and runs the desired amount of training epochs on it. The trained model must then ;be returned once training is finished.
 
 ---
 
 ### Training Checkpoints
 
-A training episode consists of one play through of each save state in the game folder. Once the episode is complete training will be run and after the trained and updated model is returned a checkpoint will be made by Agent.py in order to save the model for later use. As well custom training logs will be made for each unique class that is training that will show the training error of the Agent as it is learning. These logs and models are stored in the logs and models directories respectively and are formatted as models/{class_name}{Log} and logs/{class_name}{Model}. Note that the formatting is based on the class name and so only one instance of a model for each unique class can be stored as of now.
+Once a round of training is complete and the updated model is returned a checkpoint will be made by Agent.py that saves the trained model as a backup. As well a custom training log will be that will show the training error of the Agent as it is learning. These logs and models are stored in their own unique logs and model directories based on the name of their model. The naming convention is local_models/{class_name}/{class_name}.model and local_models/{class_name}/{class_name}.log. A model can be given a name upon initialization, if none is given it's class.name variable will default to the class name itself. The local models folder is used to only train models locally and the git ignore inside prevents these models from being tracked so to avoid merge conflicts. There is a pretrained models folder that example test models can be put inside.
 
 ### Watch Agent
 
-Watch Agent is a basic script that allows the user to load in a pretrained Agent and visualize it playing the game. It is useful to use this in conjunction with checkpoints in order to pause an Agent between episodes and view it's progress to understand if it's headed in the right direction and that things are working correctly.
+Watch Agent is a basic script that allows the user to qucikly load in a specific Agent and visualize it playing through the single player mode without having to setup an entire tournament. It is useful to use this in conjunction with checkpoints in order to pause an Agent between episodes and view it's progress to understand if it's headed in the right direction and if things seem to be working correctly.
 
 ## Json Files
 
-There are three json files that the gym environment reads in order to setup the high level "rules" of the emulation. These files are metadata.json, data.json, and scenario.json. 
+There are three json files and a lua script that the gym environment reads in order to setup the emulation environment. These files are metadata.json, data.json, scenario.json, and reward_script.lua. 
 
 ### Metadata.json
 
-The metadata.json file holds high level global information about the game environment. For now this simply tells the environment the default save state that the game ROM should launch in if none has been selected. 
+The metadata.json file can hold high level global information about the game environment. For now this simply tells the environment the default save state that the game ROM should launch in if none has been selected. 
 
 ### Data.json
 
@@ -176,7 +166,7 @@ https://www.youtube.com/watch?v=zsPLCIAJE5o&t=900s
 
 ### Scenario.json
 
-Scenario.json specifies several conditions over which that define the goal of the simulation or specify what criteria the agent will be judged on for rewards. The main specifications are the reward function and the done flag. The reward function for the StreetFighterAgents is seperated into it's own lua script to make designing a more complex reward function easier. The script can be imported and pointed to for use by gym-retro's environment for it's reward function by including the code snippet in scenario.json as follows:
+Scenario.json specifies several hyper parameters describing the game environment, such as when it is finished, which reward script is being used, and how large the emulator window will be. The reward function for the StreetFighterAgents is seperated into it's own lua script to make designing a more complex reward function easier. The script is imported for use by gym-retro's environment via the code snippet in scenario.json as follows:
 
 ```
 
@@ -191,16 +181,16 @@ Scenario.json specifies several conditions over which that define the goal of th
 
 #### Reward Function
 
-The reward function specifies what variables make up the reward function and what weights are assigned, whether that be positive or negative, to each variable. After each action is taken by an agent a reward calculated by this function is returned to the agent. This is then recorded and stored for later training after all fights in an epoch are finished. For now the default reward function utilizes the agent's score, agent's health, the enemy health, the number of rounds the agent has won, and the number of rounds the enemy has won. 
+The reward function specifies what game state variables factor into the reward and what weights are assigned to them. Each game state variable can either positively or negatively affect the reward for each player. After each action is taken by both players a reward is calculated and returned to both players. The reward is mirrored for both players so if player 1 recieves a reward of positive 100 then player 2 will receive a score of -100 because they are in direct competition with one another. The reward for that time step is then recorded and stored for later training after all fights in an epoch are finished. For now the default reward function utilizes game state variables such as the change in each player's health and whether a round was won or lost on that time step. 
 
 #### Done
 
-Done is a flag that signifies whether the current environment has completed. Currently Done is set if the enemy or the agent get two round wins, which in game is what determines if a match is over. So once the match is over the agent moves onto the next save state.
+Done is a flag that signifies whether the current environment has completed. If True the match will be ended the Agents will then be given time to train. Currently Done is set to True once either player has won two rounds. 
 
 ---
 ## Generating New Save States
 
-Save states are generated by a user actually saving their games state while playing in an emulator. In order to make new save states to contribute to the variety of matches your agent will play in you have to actually play the Street Fighter ROM up until the point you want the agent to start at. 
+Save states are generated by a user actually saving the current game state while running the rom in an emulator In order to make new save states to contribute to the variety of matches your Agent will play in you have to actually play the Street Fighter ROM up until the point you want the Agent to start at. 
 
 ### Installing the Emulator
 
@@ -214,35 +204,41 @@ Retroarch needs a core of the architecture it is trying to simulate. The Street 
 
 ### Saving states
 
-F2 is the shortcut key that saves the current state of the game. The state is saved to the currently selected game state slot. This starts at slot zero and can be incremented with the F6 key and decremented with the F7 key. When a fight is about to start that you want to create a state for hit F2. Then I would recommend incrementing the save slot by pressing F6 so that if you try to save another state you don't accidentally overwrite the last state you saved. There are 8 slots in total. By pressing F5 and going to view->settings-Directory you can control where the save states are stored. The states will be saved with the extension of 'state' plus the number of the save slot it was saved in. To prep these for usage cleave off the number at the end of each extension and rename each file to the name of the fighter that the agent will be going up against plus some other context information if necessary. Then move these ROMS into the game files inside of retro like when preparing the game files after the initial cloning of the repo. Once inside that repo each state should be zipped independently of one another. Once this happens the extension will now be .zip, remove this from the extension so that the extension still remains .state. The states are now ready to be loaded by the agent. Every time you load up the emulator decrement all the way back to zero again. 
+F2 is the shortcut key that saves the current state of the game. The state is saved to the currently selected game state slot. This starts at slot zero and can be incremented with the F6 key and decremented with the F7 key. When a fight is about to start that you want to create a state for hit F2. Then it is recommended to increment the save slot by pressing F6 so that if you try to save another state you don't accidentally overwrite the last state you saved. There are 8 slots in total. By pressing F5 and going to view->settings-Directory you can control where the save states are stored. The states will be saved with the extension of 'state' plus the number of the save slot it was saved in. To prep these for usage cleave off the number at the end of each extension and rename each file in accordance to the single player and two player formats that can be seen with existing states. Then move these ROMS into the game files inside of retro exactly like when preparing the game files after the initial cloning of the repo. Once inside that repo each state should be zipped independently of one another. Once this happens the extension will now be .zip, remove this from the extension so that the extension still remains .state. The states are now ready to be loaded by the agent. 
 
 ---
 ## Example Implemented Agents
 
+There are two examples of already implemented Agents. 
+
 ### DeepQAgent
 
-DeepQAgent is an implementation of the DeepQ reinforcement algorithm for playing StreetFighter using policy gradients, a dense reward function, and greedy exploration controlled by an epsilon value that decreases as the model is trained. Each action the Agent takes during a fight is rewarded after a change in time in order to see what effect the move had on the fight outcome. When the model is first initialized it plays completely randomly in order to kick start rapid greedy exploration. As the model trains epsilon slowly decreases until the model begins to take over now that it has watched random play for a while and hopefully picked up some techniques. Below is a description the implementation of each of the abstract functions required for a child class. The observation of the current state is not actually used in training as building a network to do feature extraction for each stage and fighter combination from image data would be incredibly hard. That information is thrown away and instead only the RAM data is used to train.
+First is DeepQAgent. DeepQAgent is an implementation of the DeepQ reinforcement algorithm for playing StreetFighter using policy gradients, a dense reward function, and greedy exploration controlled by an epsilon value that decreases as the model is trained. Each action the Agent takes during a fight is rewarded after a change in time in order to see what effect the move had on the fight outcome. When the model is first initialized it plays completely randomly in order to kick start rapid greedy exploration. As the model trains epsilon slowly decreases until the model begins to take over now that it has watched random play for a while and hopefully picked up some techniques. Below is a description of the implementation of each of the abstract functions required for a child class. The observation of the current state is not actually used in training as building a network to do feature extraction for each stage and fighter combination from image data would be incredibly hard. That information is thrown away and instead only the RAM data is used to train.
 
 #### Get Move
 
- The RAM data of the current state is converted into a feature vector by the helper function prepareNetworkInputs. Several parts of the RAM data such as the enemy character, player and enemy_state, and more are one hot encoded so that mutual independence is established. This leads to a feature vector containing 30 elements that is fed into the network. The output of the network decides what move the Agent will take from a preset move list where the move is then mapped to a set of inputs via a look up table and fed into the environment. The activation function of the output layer is a softmax function that assigns a probability to each possible move. These probabilities all sum to one and the move with the highest probability is picked as the action the Agent will undertake. However whenever a move is requested by the Agent a random number is generated, if this number is below the epsilon value, which ranges from 0 to 1 and decreases over time towards a lower bound during training, a random move is picked instead. This forces exploration of new strategies by the Agent. However this exploration is not informed by any model the Agent has and so is simply random greedy exploration. 
+The RAM data of the current state is converted into a feature vector by the helper function prepareNetworkInputs. Several parts of the RAM data such as the enemy character, player and enemy_state, and more are one hot encoded so that mutual independence is established. This leads to a feature vector containing 30 elements that is fed into the network. The output of the network decides what move the Agent will take from a preset move list where the move is then mapped to a set of inputs via a look up table and fed into the environment. The activation function of the output layer is a softmax function that assigns a probability to each possible move. These probabilities all sum to one and the move with the highest probability is picked as the action the Agent will undertake. However whenever a move is requested by the Agent a random number is generated, if this number is below the epsilon value, which ranges from 0 to 1 and decreases over time towards a lower bound during training, a random move is picked instead. This forces exploration of new strategies by the Agent. However this exploration is not informed by any model the Agent has and so is simply random greedy exploration. 
 
 #### initializeNetwork
 
-The input layer is the size of the info about the state space that is created in prepareNetworkInputs when converting the RAM info of the current state into a feature vector. There are 5 hidden layers all with linear activations. The output layer is the size of the predefined user action space. Note that this is not the same as the action space of the game. The action space of the game is the number of buttons the Agent can possibly press, however to assist the Agent a predefined set of button inputs for specific moves and combos have been established to chose from. So the output of the network is the size of the predefined set of moves. The output activation function is softmax so that each predefined move is assigned a probability by the network that all sum to one. 
+The input layer is the size of the info about the state space that is created in prepareNetworkInputs when converting the RAM info of the current state into a feature vector. There are several hidden layers all with linear activations. The output layer is the size of the predefined user action space. Note that this is not the same as the action space of the game. The action space of the game is the number of buttons the Agent can possibly press, this action space is far too large to explore and so a set of "combos" has been made inside the discretizer that correlates to each meaningful set of button presses in the game. So the output of the network is the size of this predefined set of button combinations. The output activation function is linear and represents the predicted reward of doing each combo, the move with the highest reward is chosen. 
 
 #### preprareMemoryForTraining
 
-Each time step from the training game memory has the RAM data from the game converted into a 30 element feature vector described in the top of the section. That is the only preparation needed. The states where the Agent is locked in hit stun or is in the middle of a move could be filtered out but as their reward is zero they will not effect the training weights. However they do slow down the training time so future updates will most likely filter them out for performance's sake. The observation, next_state, and done flag are thrown out in this model for simplicities sake. However they will be utilized in future updates.
+Each time step from the training game memory has the RAM data from the game converted into a 30 element feature vector described in the top of the section. That is the only preparation needed. The observation of the current image data is thrown out as this model only operates on the RAM data.
 
 #### trainNetwork
 
-For training the method of policy gradients is used. A dense reward function has been designed so that the Agent can be given frequent rewards for using good moves. Policy gradients essentially uses the reward for each state, action, new state sequence as the gradient for training our network. The gradient vector then has the index of the move chosen set to the reward and all other indices are left zero. So the network is either trained to pick solely that move more or less in that state depending on the reward, but other moves are not penalized. 
+For training the method of policy gradients is used. A dense reward function has been designed so that the Agent can be given frequent rewards for using good moves. Policy gradients essentially uses the reward for each state, action, new state sequence as the gradient for training our network. The gradient vector then has the index of the button combination chosen set to the observed reward and all other indices are left as predicted.
+
+### HumanAgent
+
+An Agent that actually is controlled by a human. When the Agent is called into a game it turns on a hook into the user's keyboard and enters it's key presses into the game. When the game finishes the hook is turned off. User input is continously sampled and the current pressed keys are updated in an input buffer at any new key event. When the game lobby asks for this Agent's move the last updated input buffer is submitted. 
 
 ---
 ## Further Help
 
-If you have any further questions on how to use or modify this project feel free to open up an issue so that others can see the discussion and benifit from the answer. However before asking any issues please check to see if your issue has been answered before to avoid redundancy. If you have any questions regarding contributing please refer to the contributing guidelines for more information. 
+Feel free to open up issues if running into problems with this project. However before asking any issues please check to see if your issue has already been answered. If you have any questions regarding contributing please refer to the contributing guidelines for more information. 
 
 ---
 ## References:
