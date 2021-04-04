@@ -10,6 +10,13 @@ import Agent
 import HumanAgent
 
 class GameMaster(threading.Thread):
+    """
+    A class that manages tournamanets between various user models.
+    The Game Master will initialize a set of lobbies and will randomly
+    pair off players each round in each. After each round players can
+    be given time to review their matches and train. Player results are
+    documented and can be viewed on a leaderboard that details the model rankings.
+    """
 
     PLAYER_LISTING_PATH = ""
 
