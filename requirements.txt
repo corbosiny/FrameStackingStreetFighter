@@ -6,4 +6,3 @@ numpy==1.19.5
 stable_baselines==2.10.1
 tensorflow==2.4.1
 Pillow==8.2.0
-retro==2.9.0
