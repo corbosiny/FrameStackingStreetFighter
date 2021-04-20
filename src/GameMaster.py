@@ -432,7 +432,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if not args.loadPlayers: 
-        characters = ['ryu', 'blanka', 'guile', 'ehonda', 'ken', 'chunli', 'zangief', 'dhalism']
+        characters = ['ryu', 'blanka', 'guile', 'ehonda', 'ken', 'chunli', 'zangief', 'dhalsim']
         players = [Agent.Agent(character= characters[x % len(characters)]) for x in range(args.numPlayers)]
         players[0] = HumanAgent.HumanAgent()
     else:
