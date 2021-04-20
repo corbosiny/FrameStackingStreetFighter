@@ -352,4 +352,4 @@ if __name__ == "__main__":
     testLobby = Lobby.Lobby(mode= Lobby.Lobby_Modes.SINGLE_PLAYER)
     agent = Agent()
     testLobby.addPlayer(agent)
-    testLobby.executeTrainingRun(render= True)
+    testLobby.executeTrainingRun(render= args.render)
