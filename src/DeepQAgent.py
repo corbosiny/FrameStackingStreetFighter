@@ -1,6 +1,7 @@
 import argparse, retro, threading, os, numpy, random, math
 from Agent import Agent
 from LossHistory import LossHistory
+from cudaKernels import prepareMemoryForTrainingCuda
 
 import tensorflow as tf
 from tensorflow.keras import Sequential 
@@ -11,6 +12,8 @@ from tensorflow.keras import backend as K
 import tensorflow.keras.losses
 
 from collections import deque
+
+from time import perf_counter
 
 class DeepQAgent(Agent):
     """An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn street fighter 2"""
@@ -145,6 +148,9 @@ class DeepQAgent(Agent):
             DeepQ needs a state, action, and reward sequence to train on
             The observation data is thrown out for this model for training
         """
+        
+        start_timer = perf_counter()
+
         data = []
         for step in self.memory:
             data.append(
@@ -153,7 +159,22 @@ class DeepQAgent(Agent):
             step[Agent.REWARD_INDEX],
             step[Agent.DONE_INDEX],
             self.prepareNetworkInputs(step[Agent.NEXT_STATE_INDEX])])
+        
+        """
+        data = numpy.zeros(len(self.memory))
+        
+        # Number of threads per block
+        threadsperblock = 32
 
+        # Number of blocks per grid
+        blockspergrid = data.size + (threadsperblock - 1)
+
+        # Will most likely have to split up data array
+        prepareMemoryForTrainingCuda(data, ...)
+        """
+        
+        print("Elapsed time: " + str(perf_counter() - start_timer) + '\n')
+        print(data[0])
         return data
 
     def prepareNetworkInputs(self, step):
