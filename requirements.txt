@@ -5,3 +5,4 @@ keyboard==0.13.5
 Keras==2.3.1
 gym_retro==0.7.0
 numpy==1.19.5
+numba==0.53.1
