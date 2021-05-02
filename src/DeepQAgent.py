@@ -2,6 +2,7 @@ import argparse, retro, threading, os, numpy, random, math
 from Agent import Agent
 from LossHistory import LossHistory
 from cudaKernels import prepareMemoryForTrainingCuda
+from numba import cuda
 
 import tensorflow as tf
 from tensorflow.keras import Sequential 
@@ -149,7 +150,7 @@ class DeepQAgent(Agent):
             The observation data is thrown out for this model for training
         """
         
-        start_timer = perf_counter()
+        startTimer = perf_counter()
 
         data = []
         for step in self.memory:
@@ -160,21 +161,44 @@ class DeepQAgent(Agent):
             step[Agent.DONE_INDEX],
             self.prepareNetworkInputs(step[Agent.NEXT_STATE_INDEX])])
         
-        """
-        data = numpy.zeros(len(self.memory))
-        
+        print("Elapsed time serial: " + str(perf_counter() - startTimer) + '\n')
+
+        # Pre-processing array here to overcome CUDA Python limitations
+        cudaMemory = numpy.array([[row[Agent.ACTION_INDEX] for row in self.memory],
+                                 [row[Agent.REWARD_INDEX] for row in self.memory],
+                                 [row[Agent.DONE_INDEX] for row in self.memory]])
+        action = numpy.zeros(len(self.memory))
+        reward = numpy.zeros(len(self.memory))
+        done = numpy.zeros(len(self.memory), dtype=bool)
+
+        # Copy arrays from host to device memory (blocking calls)
+        startTimer = perf_counter()
+        cudaMemoryGlobal = cuda.to_device(cudaMemory)
+        actionGlobal = cuda.to_device(action)
+        rewardGlobal = cuda.to_device(reward)
+        doneGlobal = cuda.to_device(done)
+        hostToDeviceTime = perf_counter() - startTimer
+        print("Elapsed time host-to-device: " + str(hostToDeviceTime) + '\n')        
+
         # Number of threads per block
-        threadsperblock = 32
+        threadsPerBlock = 32
 
         # Number of blocks per grid
-        blockspergrid = data.size + (threadsperblock - 1)
+        blocksPerGrid = len(cudaMemory) + (threadsPerBlock - 1)
 
-        # Will most likely have to split up data array
-        prepareMemoryForTrainingCuda(data, ...)
-        """
-        
-        print("Elapsed time: " + str(perf_counter() - start_timer) + '\n')
+        startTimer = perf_counter()
+        # Invoke the CUDA kernel (blocking call)
+        prepareMemoryForTrainingCuda[blocksPerGrid, threadsPerBlock](cudaMemoryGlobal, actionGlobal, rewardGlobal, doneGlobal)
+
+        print("Elapsed time parallel: " + str(perf_counter() - startTimer - hostToDeviceTime) + '\n')
+
+        # Arrays are automatically copied back from device to host
+        # when kernel finishes so we'll use hostToDeviceTime as an estimate        
+
         print(data[0])
+        print(actionGlobal[0])
+        print(reward[0])
+        print(done[0])
         return data
 
     def prepareNetworkInputs(self, step):
