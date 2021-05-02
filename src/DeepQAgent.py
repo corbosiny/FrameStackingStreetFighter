@@ -162,21 +162,58 @@ class DeepQAgent(Agent):
             self.prepareNetworkInputs(step[Agent.NEXT_STATE_INDEX])])
         
         print("Elapsed time serial: " + str(perf_counter() - startTimer) + '\n')
+ 
+        # Pre-processing memory array here to overcome CUDA Python limitations
+        cudaMemory = numpy.array([[row[Agent.ACTION_INDEX] for row in self.memory],                             # 0
+                                 [row[Agent.REWARD_INDEX] for row in self.memory],                              # 1
+                                 [row[Agent.DONE_INDEX] for row in self.memory]])                               # 2
 
-        # Pre-processing array here to overcome CUDA Python limitations
-        cudaMemory = numpy.array([[row[Agent.ACTION_INDEX] for row in self.memory],
-                                 [row[Agent.REWARD_INDEX] for row in self.memory],
-                                 [row[Agent.DONE_INDEX] for row in self.memory]])
-        action = numpy.zeros(len(self.memory))
-        reward = numpy.zeros(len(self.memory))
-        done = numpy.zeros(len(self.memory), dtype=bool)
+        cudaStateMemory = numpy.array([[row[Agent.STATE_INDEX]["player1_health"] for row in self.memory],   # 0
+                                 [row[Agent.STATE_INDEX]["player1_x_position"] for row in self.memory],     # 1   
+                                 [row[Agent.STATE_INDEX]["player1_y_position"] for row in self.memory],     # 2
+                                 [row[Agent.STATE_INDEX]["player1_character"] for row in self.memory],      # 3   
+                                 [row[Agent.STATE_INDEX]["player1_status"] for row in self.memory],         # 4   
+                                 [row[Agent.STATE_INDEX]["player2_health"] for row in self.memory],         # 5
+                                 [row[Agent.STATE_INDEX]["player2_x_position"] for row in self.memory],     # 6
+                                 [row[Agent.STATE_INDEX]["player2_y_position"] for row in self.memory],     # 7
+                                 [row[Agent.STATE_INDEX]["player2_character"] for row in self.memory],      # 8
+                                 [row[Agent.STATE_INDEX]["player2_status"] for row in self.memory]])        # 9
+                                                                
+        cudaNextStateMemory = numpy.array([[row[Agent.NEXT_STATE_INDEX]["player1_health"] for row in self.memory],
+                                 [row[Agent.NEXT_STATE_INDEX]["player1_x_position"] for row in self.memory],
+                                 [row[Agent.NEXT_STATE_INDEX]["player1_y_position"] for row in self.memory],
+                                 [row[Agent.NEXT_STATE_INDEX]["player1_character"] for row in self.memory], 
+                                 [row[Agent.NEXT_STATE_INDEX]["player1_status"] for row in self.memory],                  
+                                 [row[Agent.NEXT_STATE_INDEX]["player2_health"] for row in self.memory],
+                                 [row[Agent.NEXT_STATE_INDEX]["player2_x_position"] for row in self.memory],
+                                 [row[Agent.NEXT_STATE_INDEX]["player2_y_position"] for row in self.memory],
+                                 [row[Agent.NEXT_STATE_INDEX]["player2_y_position"] for row in self.memory],
+                                 [row[Agent.NEXT_STATE_INDEX]["player2_character"] for row in self.memory],
+                                 [row[Agent.NEXT_STATE_INDEX]["player2_status"] for row in self.memory]])
+
+        actionArr = numpy.zeros(len(self.memory))
+        rewardArr = numpy.zeros(len(self.memory))
+        doneArr = numpy.zeros(len(self.memory), dtype=bool)
+        stateArr = numpy.zeros((len(self.memory), 3 + (2*len(DeepQAgent.stateIndices.keys())) + 8 + 3))
+        nextStateArr = numpy.zeros((len(self.memory), 3 + (2*len(DeepQAgent.stateIndices.keys())) + 8 + 3))
+
+        playerNum = numpy.array([self.playerNumber])
+        doneKeys = numpy.array(DeepQAgent.doneKeys)
+        stateIndices = numpy.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8])
 
         # Copy arrays from host to device memory (blocking calls)
         startTimer = perf_counter()
-        cudaMemoryGlobal = cuda.to_device(cudaMemory)
-        actionGlobal = cuda.to_device(action)
-        rewardGlobal = cuda.to_device(reward)
-        doneGlobal = cuda.to_device(done)
+        d_cudaMemory = cuda.to_device(cudaMemory)
+        d_stateMemory = cuda.to_device(cudaStateMemory)
+        d_nextStateMemory = cuda.to_device(cudaNextStateMemory)
+        d_actionArr = cuda.to_device(actionArr)
+        d_rewardArr = cuda.to_device(rewardArr)
+        d_doneArr = cuda.to_device(doneArr)
+        d_stateArr = cuda.to_device(stateArr)
+        d_nextStateArr = cuda.to_device(nextStateArr)
+        d_playerNum = cuda.to_device(playerNum)
+        d_doneKeys = cuda.to_device(doneKeys)
+        d_stateIndices = cuda.to_device(stateIndices)
         hostToDeviceTime = perf_counter() - startTimer
         print("Elapsed time host-to-device: " + str(hostToDeviceTime) + '\n')        
 
@@ -188,17 +225,17 @@ class DeepQAgent(Agent):
 
         startTimer = perf_counter()
         # Invoke the CUDA kernel (blocking call)
-        prepareMemoryForTrainingCuda[blocksPerGrid, threadsPerBlock](cudaMemoryGlobal, actionGlobal, rewardGlobal, doneGlobal)
+        prepareMemoryForTrainingCuda[blocksPerGrid, threadsPerBlock](d_cudaMemory, d_stateMemory, d_nextStateMemory, d_actionArr, d_rewardArr, d_doneArr, d_stateArr, d_nextStateArr, d_playerNum, d_doneKeys, d_stateIndices)
 
         print("Elapsed time parallel: " + str(perf_counter() - startTimer - hostToDeviceTime) + '\n')
 
         # Arrays are automatically copied back from device to host
         # when kernel finishes so we'll use hostToDeviceTime as an estimate        
 
-        print(data[0])
-        print(actionGlobal[0])
-        print(reward[0])
-        print(done[0])
+        print(DeepQAgent.stateIndices)
+        print(d_actionArr[0])
+        print(d_rewardArr[0])
+        print(d_doneArr[0])
         return data
 
     def prepareNetworkInputs(self, step):
