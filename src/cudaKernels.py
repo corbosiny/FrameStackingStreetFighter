@@ -23,29 +23,43 @@ def prepareMemoryForTrainingCuda(memory, memState, memNextState, action, reward,
     nextState[thread_id][2] = memNextState[startIndex + 2][thread_id]
 
     nextIndex += 3
-    """
+    
     # Enemy status
     if playerNum[0] == 0: statusIndex = 9
     else: statusIndex = 4
-    statusKey = memState[statusIndex]
-    if statusKey not in doneKeys: state[thread_id][stateIndices[statusKey] + nextIndex] = 1
+    statusKey = memState[statusIndex][thread_id]
+    found = False
+    for i in doneKeys:
+        if statusKey == i:
+            found = True
+            break
+    if not found:
+        state[thread_id][stateIndices[statusKey] + nextIndex] = 1
 
-    statusKey = memNextState[statusKey]
-    if statusKey not in doneKeys: nextState[thread_id][stateIndices[statusKey] + nextIndex] = 1
+    
+    statusKey = memNextState[statusIndex][thread_id]
+    found = False
+    for i in doneKeys:
+        if statusKey == i:
+            found = True
+            break
 
+    if not found:
+        nextState[thread_id][stateIndices[statusKey] + nextIndex] = 1
+    
     nextIndex += 8
     
     # Enemy character
-    state[memState[startIndex + 3] + nextIndex] = 1
+    state[memState[startIndex + 3][thread_id] + nextIndex] = 1
 
-    nextState[memNextState[startIndex + 3] + nextIndex] = 1
+    nextState[memNextState[startIndex + 3][thread_id] + nextIndex] = 1
 
     nextIndex += 1
 
     # Player data
     if playerNum[0] == 0: startIndex = 0
     else: startIndex = 5
-
+    
     state[thread_id][nextIndex] = memState[startIndex][thread_id]
     state[thread_id][nextIndex + 1] = memState[startIndex + 1][thread_id]
     state[thread_id][nextIndex + 2] = memState[startIndex + 2][thread_id]
@@ -55,13 +69,26 @@ def prepareMemoryForTrainingCuda(memory, memState, memNextState, action, reward,
     nextState[thread_id][nextIndex + 2] = memNextState[startIndex + 2][thread_id]
     
     nextIndex += 3
-
+    
     # Player status
     if playerNum[0] == 0: statusIndex = 4
     else: statusIndex = 9
-    statusKey = memState[statusIndex]
-    if statusKey not in doneKeys: state[thread_id][stateIndices[statusKey] + nextIndex] = 1
+    statusKey = memState[statusIndex][thread_id]
+    found = False
+    for i in doneKeys:
+        if statusKey == i:
+            found = True
+            break
+    if not found:
+        state[thread_id][stateIndices[statusKey] + nextIndex] = 1
 
-    statusKey = memNextState[statusKey]
-    if statusKey not in doneKeys: nextState[thread_id][stateIndices[statusKey] + nextIndex] = 1
-    """
+    statusKey = memNextState[statusIndex][thread_id]
+    found = False
+    for i in doneKeys:
+        if statusKey == i:
+            found = True
+            break
+    
+    if not found:
+        nextState[thread_id][stateIndices[statusKey] + nextIndex] = 1
+

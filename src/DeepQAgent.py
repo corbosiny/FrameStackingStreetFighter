@@ -232,10 +232,12 @@ class DeepQAgent(Agent):
         # Arrays are automatically copied back from device to host
         # when kernel finishes so we'll use hostToDeviceTime as an estimate        
 
-        print(DeepQAgent.stateIndices)
+        print(d_stateArr[0][0])
         print(d_actionArr[0])
         print(d_rewardArr[0])
         print(d_doneArr[0])
+        print(d_nextStateArr[0][0])
+        print(data[0])
         return data
 
     def prepareNetworkInputs(self, step):
