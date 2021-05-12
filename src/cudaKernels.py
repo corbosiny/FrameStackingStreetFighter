@@ -9,7 +9,7 @@ def prepareMemoryForTrainingCuda(memory, memState, memNextState, action, reward,
     action[thread_id] = memory[0][thread_id]
     reward[thread_id] = memory[1][thread_id]
     done[thread_id] = memory[2][thread_id]
-
+    
     # Health, x position, y position
     if playerNum[0] == 0: startIndex = 5
     else: startIndex = 0
@@ -91,4 +91,4 @@ def prepareMemoryForTrainingCuda(memory, memState, memNextState, action, reward,
     
     if not found:
         nextState[thread_id][stateIndices[statusKey] + nextIndex] = 1
-
+    

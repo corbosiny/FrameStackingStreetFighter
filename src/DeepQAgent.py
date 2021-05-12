@@ -221,7 +221,7 @@ class DeepQAgent(Agent):
         threadsPerBlock = 32
 
         # Number of blocks per grid
-        blocksPerGrid = len(cudaMemory) + (threadsPerBlock - 1)
+        blocksPerGrid = int((len(self.memory) / threadsPerBlock)) + 1
 
         startTimer = perf_counter()
         # Invoke the CUDA kernel (blocking call)
