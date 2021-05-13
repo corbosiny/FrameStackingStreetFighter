@@ -1,7 +1,7 @@
 import argparse, retro, threading, os, numpy, random, math
 from Agent import Agent
 from LossHistory import LossHistory
-from cudaKernels import prepareMemoryForTrainingCuda
+from cudaKernels import prepareMemoryForTrainingCuda, prepareMemoryForTrainingCudaLowerBound
 from numba import cuda
 
 import tensorflow as tf
@@ -223,21 +223,23 @@ class DeepQAgent(Agent):
         # Number of blocks per grid
         blocksPerGrid = int((len(self.memory) / threadsPerBlock)) + 1
 
-        startTimer = perf_counter()
-        # Invoke the CUDA kernel (blocking call)
-        prepareMemoryForTrainingCuda[blocksPerGrid, threadsPerBlock](d_cudaMemory, d_stateMemory, d_nextStateMemory, d_actionArr, d_rewardArr, d_doneArr, d_stateArr, d_nextStateArr, d_playerNum, d_doneKeys, d_stateIndices)
+        #startTimer = perf_counter()
+        # Invoke the CUDA kernel (naive method) (blocking call)
+        #prepareMemoryForTrainingCuda[blocksPerGrid, threadsPerBlock](d_cudaMemory, d_stateMemory, d_nextStateMemory, d_actionArr, d_rewardArr, d_doneArr, d_stateArr, d_nextStateArr, d_playerNum, d_doneKeys, d_stateIndices)
 
-        print("Elapsed time parallel: " + str(perf_counter() - startTimer - hostToDeviceTime) + '\n')
+        #print("Elapsed time parallel (naive): " + str(perf_counter() - startTimer - hostToDeviceTime) + '\n')
+
+        startTimer = perf_counter()
+        # Invoke the CUDA kernel (lower bound method) (blocking call)
+        prepareMemoryForTrainingCudaLowerBound[blocksPerGrid, threadsPerBlock](d_cudaMemory, d_stateMemory, d_nextStateMemory, d_actionArr, d_rewardArr, d_doneArr, d_stateArr, d_nextStateArr, d_playerNum, d_doneKeys, d_stateIndices)
+        
+        print("Elapsed time parallel (lower bound): " + str(perf_counter() - startTimer - hostToDeviceTime) + '\n')
+
+        print("Num frames: " + str(len(self.memory)))
 
         # Arrays are automatically copied back from device to host
         # when kernel finishes so we'll use hostToDeviceTime as an estimate        
 
-        print(d_stateArr[0][0])
-        print(d_actionArr[0])
-        print(d_rewardArr[0])
-        print(d_doneArr[0])
-        print(d_nextStateArr[0][0])
-        print(data[0])
         return data
 
     def prepareNetworkInputs(self, step):

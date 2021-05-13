@@ -92,3 +92,13 @@ def prepareMemoryForTrainingCuda(memory, memState, memNextState, action, reward,
     if not found:
         nextState[thread_id][stateIndices[statusKey] + nextIndex] = 1
     
+
+
+@cuda.jit
+def prepareMemoryForTrainingCudaLowerBound(memory, memState, memNextState, action, reward, done, state, nextState, playerNum, doneKeys, stateIndices):
+    thread_id = cuda.threadIdx.x + (cuda.blockIdx.x * cuda.blockDim.x)
+    
+    # Action, reward, and done status
+    action[thread_id] = memory[0][thread_id]
+    reward[thread_id] = memory[1][thread_id]
+    done[thread_id] = memory[2][thread_id]
