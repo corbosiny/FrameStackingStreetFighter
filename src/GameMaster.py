@@ -8,6 +8,8 @@ import retro
 import Lobby
 import Agent
 import HumanAgent
+from Discretizer import StreetFighter2Discretizer
+from stable_baselines.common.vec_env import SubprocVecEnv
 
 class GameMaster(threading.Thread):
     """
@@ -261,11 +263,29 @@ class GameMaster(threading.Thread):
         -------
         None
         """
-        if self.verbose: print('Beginning Tournament Round {0}..'.format(self.roundsRun + 1))
-        for lobby in self.closedLobbies:
-            state = lobby.getSaveStateList()[0]
-            if self.verbose: print('Now playing: {0} vs {1}'.format(lobby.players[0].getCharacter(), lobby.players[1].getCharacter()))
-            lobby.play(state= state, render= self.viewGames)
+
+        def makeEnv(game= 'StreetFighterIISpecialChampionEdition-Genesis',  state= "two_player_ryuVSguile"):
+            env = retro.make(game= game, state= state, players= 2)
+            env = StreetFighter2Discretizer(env)
+            return env 
+
+        envs = [makeEnv for i in range(len(self.closedLobbies))]
+        actionSpace = makeEnv().action_space
+        env = SubprocVecEnv(envs)
+        env.reset()
+        gameFinished = [False] * len(self.closedLobbies)
+        
+        while not all(gameFinished):
+            inputs = []
+            for game in range(len(self.closedLobbies)):
+                if not gameFinished[game]: inputs.append([actionSpace.sample() for player in range(2)])
+                else: inputs.append([0] * 2)
+
+            _, _, done, info = env.step(inputs)
+            if self.viewGames: env.render()
+
+            gameFinished = [gameElem or doneElem for gameElem, doneElem in list(zip(gameFinished, done))]
+            
         if self.verbose: print('Tournament Round {0} Complete'.format(self.roundsRun + 1))
         self.roundsRun += 1
 
