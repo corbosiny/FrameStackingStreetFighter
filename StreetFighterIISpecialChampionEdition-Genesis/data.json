@@ -25,7 +25,7 @@
             "type": ">u2"
         },
         "player2_matches_won": {
-            "address": 16745559,
+            "address": 16745562,
             "type": "|u1"
         },
         "player2_character": {
