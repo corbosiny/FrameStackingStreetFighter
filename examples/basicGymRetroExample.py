@@ -10,6 +10,7 @@ def main(game= 'StreetFighterIISpecialChampionEdition-Genesis',  state= "two_pla
     env.reset()
     while True:
         action = [env.action_space.sample() for i in range(2)]
-        env.render())
+        env.step(action)
+        env.render()
 if __name__ == "__main__":
     main()
